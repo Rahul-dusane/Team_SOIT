@@ -1,0 +1,119 @@
+{
+  "mode": "isolated functions; real contracts; identity cleaner and zero semantic similarity; not full pipeline",
+  "results": [
+    {
+      "name": "Exact bookkeeping",
+      "actual": "satisfied",
+      "expected": "satisfied",
+      "passed": true
+    },
+    {
+      "name": "Java is not JavaScript",
+      "actual": "unknown",
+      "expected": "unknown",
+      "passed": true
+    },
+    {
+      "name": "Simple payroll negation",
+      "actual": "contradicted",
+      "expected": "contradicted",
+      "passed": true
+    },
+    {
+      "name": "Empty candidate",
+      "actual": "unknown",
+      "expected": "unknown",
+      "passed": true
+    },
+    {
+      "name": "Generic word incorrectly satisfies certification",
+      "actual": "satisfied",
+      "expected": "unknown",
+      "passed": false
+    },
+    {
+      "name": "Unrelated contradiction contaminates payroll",
+      "actual": "contradicted",
+      "expected": "satisfied",
+      "passed": false
+    },
+    {
+      "name": "Skill claim bypasses 60-month requirement",
+      "actual": "satisfied",
+      "expected": "partially_supported",
+      "passed": false
+    },
+    {
+      "name": "Two 12-month roles should meet 24 months",
+      "actual": "partially_supported",
+      "expected": "satisfied",
+      "passed": false
+    },
+    {
+      "name": "C++ word boundary regression",
+      "actual": "unknown",
+      "expected": "satisfied",
+      "passed": false
+    },
+    {
+      "name": "No errors is not lack of experience",
+      "actual": "contradicted",
+      "expected": "satisfied",
+      "passed": false
+    },
+    {
+      "name": "PII in returned evidence",
+      "actual": "satisfied",
+      "expected": "satisfied",
+      "passed": true
+    },
+    {
+      "name": "Evidence output excludes email",
+      "actual": false,
+      "expected": true,
+      "passed": false
+    },
+    {
+      "name": "Top-level unknown retained",
+      "actual": "example.test",
+      "expected": "example.test",
+      "passed": true
+    },
+    {
+      "name": "Nested unknown retained",
+      "actual": false,
+      "expected": true,
+      "passed": false
+    },
+    {
+      "name": "Normal assessment score",
+      "actual": 100.0,
+      "expected": 100.0,
+      "passed": true
+    },
+    {
+      "name": "Normal assessment score breakdown sums to score",
+      "actual": 100.0,
+      "expected": 100.0,
+      "passed": true
+    },
+    {
+      "name": "Zero weights must not imply perfect fit",
+      "actual": 100.0,
+      "expected": 0.0,
+      "passed": false
+    },
+    {
+      "name": "Zero weights must not imply perfect fit breakdown sums to score",
+      "actual": 0.0,
+      "expected": 100.0,
+      "passed": false
+    },
+    {
+      "name": "Explicit mandatory license enforced",
+      "actual": true,
+      "expected": false,
+      "passed": false
+    }
+  ]
+}
