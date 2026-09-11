@@ -1,0 +1,21 @@
+source_skill,target_skill,relationship,transferability
+Azure,AWS,transferable,0.80
+AWS,Azure,transferable,0.80
+Google Cloud Platform,AWS,transferable,0.80
+Google Cloud Platform,Azure,transferable,0.80
+Flask,FastAPI,transferable,0.85
+FastAPI,Flask,transferable,0.85
+Django,FastAPI,transferable,0.80
+TensorFlow,PyTorch,transferable,0.75
+PyTorch,TensorFlow,transferable,0.75
+MySQL,PostgreSQL,related,0.70
+PostgreSQL,MySQL,related,0.70
+MongoDB,PostgreSQL,related,0.60
+Redis,PostgreSQL,related,0.50
+Angular,React,related,0.55
+Vue.js,React,related,0.60
+React,Vue.js,related,0.60
+Java,JavaScript,unrelated,0.05
+JavaScript,Java,unrelated,0.05
+Python,C++,unrelated,0.10
+Docker,Kubernetes,related,0.75

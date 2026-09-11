@@ -1,0 +1,34 @@
+canonical_name,category
+Python,Programming Language
+JavaScript,Programming Language
+TypeScript,Programming Language
+Java,Programming Language
+C++,Programming Language
+Go,Programming Language
+Rust,Programming Language
+PostgreSQL,Database
+MySQL,Database
+MongoDB,Database
+Redis,Database
+SQLite,Database
+FastAPI,Framework
+Flask,Framework
+Django,Framework
+React,Framework
+Angular,Framework
+Vue.js,Framework
+Node.js,Framework
+Express.js,Framework
+Docker,DevOps
+Kubernetes,DevOps
+AWS,Cloud
+Azure,Cloud
+Google Cloud Platform,Cloud
+TensorFlow,Machine Learning
+PyTorch,Machine Learning
+scikit-learn,Machine Learning
+Pandas,Data Science
+NumPy,Data Science
+spaCy,NLP
+LangChain,AI/LLM
+LangGraph,AI/LLM

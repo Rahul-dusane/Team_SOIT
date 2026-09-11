@@ -1,0 +1,27 @@
+degree_alias,canonical_degree,level
+High School,High School,1
+Diploma,Diploma,2
+B.Tech,Bachelor,3
+B.E.,Bachelor,3
+BE,Bachelor,3
+Bachelor of Technology,Bachelor,3
+Bachelor of Engineering,Bachelor,3
+B.S.,Bachelor,3
+BS,Bachelor,3
+Bachelor of Science,Bachelor,3
+B.A.,Bachelor,3
+BA,Bachelor,3
+Bachelor,Bachelor,3
+M.Tech,Master,4
+M.E.,Master,4
+ME,Master,4
+Master of Technology,Master,4
+M.S.,Master,4
+MS,Master,4
+Master of Science,Master,4
+M.A.,Master,4
+MA,Master,4
+Master,Master,4
+Ph.D.,Doctorate,5
+PhD,Doctorate,5
+Doctorate,Doctorate,5

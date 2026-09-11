@@ -1,0 +1,43 @@
+alias,canonical
+postgres,PostgreSQL
+postgresql,PostgreSQL
+postgres sql,PostgreSQL
+pg,PostgreSQL
+k8s,Kubernetes
+kubernetes,Kubernetes
+reactjs,React
+react.js,React
+react,React
+gcp,Google Cloud Platform
+google cloud,Google Cloud Platform
+google cloud platform,Google Cloud Platform
+aws,AWS
+amazon web services,AWS
+azure,Azure
+microsoft azure,Azure
+py,Python
+python3,Python
+js,JavaScript
+javascript,JavaScript
+ts,TypeScript
+typescript,TypeScript
+tf,TensorFlow
+tensorflow,TensorFlow
+pytorch,PyTorch
+torch,PyTorch
+fastapi,FastAPI
+flask,Flask
+django,Django
+node,Node.js
+nodejs,Node.js
+docker,Docker
+redis,Redis
+mongo,MongoDB
+mongodb,MongoDB
+sklearn,scikit-learn
+scikit-learn,scikit-learn
+pandas,Pandas
+numpy,NumPy
+spacy,spaCy
+langchain,LangChain
+langgraph,LangGraph
