@@ -1,0 +1,3 @@
+import { CheckCircle2, Circle, LoaderCircle } from 'lucide-react'
+import { agentSteps } from '../data/mockData'
+export default function AgentTimeline() { return <div className="flex flex-wrap gap-2">{agentSteps.map((step, index) => <div key={step} className="flex items-center gap-2 rounded-lg bg-canvas px-3 py-2 text-xs font-bold"><span className="text-teal">{index < 4 ? <CheckCircle2 size={15} /> : <LoaderCircle size={15} className="animate-spin" />}</span>{step}</div>)}</div> }

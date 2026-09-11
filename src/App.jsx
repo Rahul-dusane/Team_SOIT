@@ -1,0 +1,10 @@
+import { Navigate, Route, Routes } from 'react-router-dom'
+import MainLayout from './layouts/MainLayout'
+import Dashboard from './pages/Dashboard'
+import Resumes from './pages/Resumes'
+import Jobs from './pages/Jobs'
+import CreateJob from './pages/CreateJob'
+import Ranking from './pages/Ranking'
+import MatchDetail from './pages/MatchDetail'
+import Compare from './pages/Compare'
+export default function App() { return <Routes><Route element={<MainLayout />}><Route path="/" element={<Dashboard />} /><Route path="/resumes" element={<Resumes />} /><Route path="/jobs" element={<Jobs />} /><Route path="/jobs/create" element={<CreateJob />} /><Route path="/ranking" element={<Ranking />} /><Route path="/matches/:id" element={<MatchDetail />} /><Route path="/compare" element={<Compare />} /><Route path="*" element={<Navigate to="/" replace />} /></Route></Routes> }

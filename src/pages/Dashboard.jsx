@@ -1,0 +1,15 @@
+import { ArrowUpRight, BarChart3, BriefcaseBusiness, FileText, Plus, Upload, Users } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import StatCard from '../components/StatCard'
+import CandidateCard from '../components/CandidateCard'
+import AgentTimeline from '../components/AgentTimeline'
+import { candidates, jobs } from '../data/mockData'
+
+export default function Dashboard() {
+  return <div className="mx-auto max-w-7xl">
+    <div className="mb-8 flex flex-col justify-between gap-4 sm:flex-row sm:items-end"><div><p className="eyebrow mb-2">Monday, September 11, 2026</p><h1 className="text-3xl font-extrabold tracking-tight">Good morning, Anika</h1><p className="mt-2 text-sm text-muted">Here’s what’s happening across your hiring workspace.</p></div><div className="flex flex-wrap gap-2"><Link to="/resumes" className="btn-soft"><Upload size={16} />Upload resumes</Link><Link to="/jobs/create" className="btn-primary"><Plus size={17} />Create a job</Link><Link to="/ranking" className="btn-soft">View rankings</Link></div></div>
+    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4"><StatCard label="Total candidates" value="128" change={12} icon={Users} /><StatCard label="Active jobs" value="12" change={8} icon={BriefcaseBusiness} /><StatCard label="Total matches" value="246" change={18} icon={BarChart3} tone="coral" /><StatCard label="Strong matches" value="64" change={-4} icon={FileText} /></div>
+    <div className="mt-8 grid gap-6 xl:grid-cols-[1.4fr_1fr]"><section className="panel p-6"><div className="mb-6 flex items-center justify-between"><div><p className="eyebrow mb-2">Top matches</p><h2 className="text-xl font-extrabold">Candidates worth a look</h2></div><Link to="/ranking" className="flex items-center gap-1 text-xs font-bold text-teal">View all <ArrowUpRight size={14} /></Link></div><div className="grid gap-4 md:grid-cols-2">{candidates.slice(0, 2).map((candidate) => <CandidateCard key={candidate.id} candidate={candidate} />)}</div></section><section className="panel p-6"><div className="mb-6 flex items-center justify-between"><div><p className="eyebrow mb-2">Pipeline snapshot</p><h2 className="text-xl font-extrabold">Active jobs</h2></div><Link to="/jobs" className="text-xs font-bold text-teal">Manage</Link></div><div className="space-y-3">{jobs.map((job) => <div key={job.id} className="rounded-xl border p-4"><div className="flex justify-between"><div><h3 className="text-sm font-bold">{job.title}</h3><p className="mt-1 text-xs text-muted">{job.department}</p></div><span className={`rounded-full px-2 py-1 text-[10px] font-bold ${job.status === 'Active' ? 'bg-mint text-teal' : 'bg-[#fff6d9] text-[#a17612]'}`}>{job.status}</span></div><div className="mt-4 flex justify-between text-xs text-muted"><span>{job.applicants} applicants</span><span>{job.updated}</span></div></div>)}</div></section></div>
+    <section className="panel mt-6 p-6"><div className="mb-5"><p className="eyebrow mb-2">Live processing</p><h2 className="text-xl font-extrabold">Agent workflow</h2></div><AgentTimeline /></section>
+  </div>
+}
