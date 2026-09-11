@@ -1,0 +1,1 @@
+export default function MatchScore({ score, size = 'md' }) { const color = score >= 85 ? 'text-teal' : score >= 70 ? 'text-[#b08313]' : 'text-coral'; return <div className={`font-extrabold ${color} ${size === 'lg' ? 'text-5xl' : 'text-xl'}`}>{score}<span className="text-sm">%</span></div> }
