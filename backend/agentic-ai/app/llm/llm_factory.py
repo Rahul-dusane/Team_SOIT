@@ -4,18 +4,21 @@ import os
 from typing import Any, Optional, Type
 from dotenv import load_dotenv
 from pydantic import BaseModel
+from langchain_core.runnables import Runnable
 
 load_dotenv()
 
 
-class MockStructuredLLM:
+class MockStructuredLLM(Runnable):
     """Mock structured LLM for offline testing or when no API key is configured."""
     
     def __init__(self, schema: Type[BaseModel]):
         self.schema = schema
 
-    def invoke(self, input_dict: Any) -> BaseModel:
+    def invoke(self, input_dict: Any, config: Optional[Any] = None, **kwargs) -> BaseModel:
         """Returns dummy structured data adhering strictly to the required Pydantic schema."""
+        if not isinstance(input_dict, dict):
+            input_dict = {}
         schema_name = self.schema.__name__
         
         if schema_name == "CandidateProfile":

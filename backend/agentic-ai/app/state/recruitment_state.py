@@ -1,6 +1,10 @@
 """Recruitment state definition for LangGraph orchestrator."""
 
-from typing import TypedDict, List, Dict, Any, Optional
+from typing import TypedDict, List, Dict, Any, Optional, Annotated
+
+
+def _latest_step_reducer(old: str, new: str) -> str:
+    return new if new else old
 
 
 class RecruitmentState(TypedDict, total=False):
@@ -25,7 +29,8 @@ class RecruitmentState(TypedDict, total=False):
     recruiter_summaries: Dict[str, Any] # {"C01_J01": RecruiterSummary.model_dump()}
 
     # 5. Pipeline Telemetry & Error Handling
-    current_step: str
+    current_step: Annotated[str, _latest_step_reducer]
     workflow_status: str                # "INITIALIZED" | "EXTRACTING" | "MATCHED" | "COMPLETED" | "FAILED"
     errors: List[str]
+
 

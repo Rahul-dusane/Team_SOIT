@@ -182,12 +182,9 @@ def build_recruitment_graph():
     builder.add_edge("resume_agent", "job_agent")
     builder.add_edge("job_agent", "matching")
 
-    # Parallel branches for explanation and evidence extraction
+    # Sequential flow for explanation, evidence extraction, and recruiter synthesis
     builder.add_edge("matching", "skill_gap")
-    builder.add_edge("matching", "evidence")
-
-    # Convergence into recruiter synthesis
-    builder.add_edge("skill_gap", "recruiter")
+    builder.add_edge("skill_gap", "evidence")
     builder.add_edge("evidence", "recruiter")
     builder.add_edge("recruiter", END)
 

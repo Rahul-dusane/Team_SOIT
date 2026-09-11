@@ -186,11 +186,12 @@ def ingest_resume_bytes(
     }
 
 
-def process_batch_upload(db: Session, files: List[Tuple[str, bytes]]) -> Dict[str, Any]:
-    """
-    Processes a batch of resume files supporting partial batch failures.
-    Returns summary with per-file status list.
-    """
+def process_batch_upload(db: Session = None, files: List[Tuple[str, bytes]] = None, **kwargs) -> Dict[str, Any]:
+    if files is None and isinstance(db, list):
+        files = db
+        db = kwargs.get("db")
+    if db is None and "db" in kwargs:
+        db = kwargs["db"]
     results = []
     success_count = 0
     failed_count = 0

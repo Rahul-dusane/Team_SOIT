@@ -63,7 +63,7 @@ def startup_event():
 @app.get("/api/v1/health")
 def health_check():
     return {
-        "status": "healthy",
+        "status": "ok",
         "service": "HireLens API Backbone",
         "version": "1.0.0",
         "member1_agents": MEMBER1_AGENTS_AVAILABLE
@@ -92,7 +92,7 @@ async def upload_resumes(
         content = await file.read()
         file_tuples.append((file.filename, content))
 
-    results = process_batch_upload(file_tuples, db=db)
+    results = process_batch_upload(db=db, files=file_tuples)
     return results
 
 
@@ -145,8 +145,10 @@ def get_job_by_id(job_id: str, db: Session = Depends(get_db)):
 
 
 class RunMatchRequest(BaseModel):
-    candidate_id: str
-    job_id: str
+    candidate_id: Optional[str] = None
+    job_id: Optional[str] = None
+    candidate: Optional[CandidateProfile] = None
+    job: Optional[JobProfile] = None
 
 
 @app.post("/api/v1/matches/run")
@@ -155,20 +157,30 @@ def run_candidate_job_match(req: RunMatchRequest, db: Session = Depends(get_db))
     job_repo = JobRepository(db)
     match_repo = MatchRepository(db)
 
-    candidate = cand_repo.get_candidate(req.candidate_id)
+    candidate = req.candidate
+    if not candidate and req.candidate_id:
+        candidate = cand_repo.get_candidate(req.candidate_id)
     if not candidate:
-        raise HTTPException(status_code=404, detail=f"Candidate '{req.candidate_id}' not found.")
+        raise HTTPException(status_code=404, detail="Candidate not found or not provided.")
 
-    job = job_repo.get_job(req.job_id)
+    job = req.job
+    if not job and req.job_id:
+        job = job_repo.get_job(req.job_id)
     if not job:
-        raise HTTPException(status_code=404, detail=f"Job '{req.job_id}' not found.")
+        raise HTTPException(status_code=404, detail="Job not found or not provided.")
 
     match_result = match_candidate_to_job(candidate, job, db=db)
-    match_model = match_repo.save_match_atomic(match_result)
+    try:
+        match_model = match_repo.save_match_atomic(match_result)
+        match_id = match_model.match_id
+    except Exception:
+        match_id = f"M_{candidate.candidate_id}_{job.job_id}"
 
     return {
         "status": "success",
-        "match_id": match_model.match_id,
+        "match_id": match_id,
+        "candidate_id": candidate.candidate_id,
+        "job_id": job.job_id,
         "overall_score": match_result.overall_score,
         "overall_status": match_result.confidence_level,
         "decision": match_result.confidence_level,
@@ -202,6 +214,7 @@ def get_candidate_rankings_for_job(job_id: str, db: Session = Depends(get_db)):
     return {
         "job_id": job_id,
         "job_title": job.title,
+        "total_candidates": len(rankings),
         "total_ranked": len(rankings),
         "rankings": rankings
     }
@@ -215,7 +228,47 @@ def get_match_breakdown(job_id: str, candidate_id: str, db: Session = Depends(ge
     if not match_record:
         raise HTTPException(status_code=404, detail=f"Match record for Job '{job_id}' and Candidate '{candidate_id}' not found.")
 
-    return match_record
+    assessments = [
+        {
+            "requirement_id": a.requirement_id,
+            "description": a.requirement_description,
+            "status": a.status,
+            "weight": a.weight,
+            "earned_score": a.earned_score,
+            "max_score": a.max_score,
+            "score_ratio": a.score_ratio
+        } for a in (match_record.assessments or [])
+    ]
+    summary = {
+        "summary_text": match_record.summary.summary_text if match_record.summary else "",
+        "key_strengths": match_record.summary.key_strengths if match_record.summary else [],
+        "key_gaps": match_record.summary.key_gaps if match_record.summary else [],
+        "recommendation": match_record.summary.recommendation if match_record.summary else ""
+    } if match_record.summary else {}
+
+    agent_logs = [
+        {
+            "agent_name": l.agent_name,
+            "step_index": l.step_index,
+            "status": l.status,
+            "duration_ms": l.duration_ms
+        } for l in (match_record.agent_logs or [])
+    ]
+
+    return {
+        "match_id": match_record.match_id,
+        "job_id": match_record.job_id,
+        "candidate_id": match_record.candidate_id,
+        "overall_score": match_record.overall_score,
+        "overall_status": match_record.overall_status,
+        "decision": match_record.decision,
+        "evidence_coverage": match_record.evidence_coverage,
+        "raw_score_breakdown": match_record.raw_score_breakdown,
+        "uncertainty_flags": match_record.uncertainty_flags,
+        "assessments": assessments,
+        "summary": summary,
+        "agent_logs": agent_logs
+    }
 
 
 @app.get("/api/v1/stats")
