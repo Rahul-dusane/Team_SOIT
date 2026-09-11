@@ -25,7 +25,7 @@ from app.schemas.skill_gap import SkillGapAnalysis, TransferableSkill
 from app.schemas.evidence import EvidenceReport, RequirementEvidence
 from app.schemas.recruiter import RecruiterSummary
 from app.state.recruitment_state import RecruitmentState
-from app.services.mock_matcher import match_candidate_to_job
+from matching.pipeline import match_candidate_to_job
 from app.agents.resume_agent import extract_candidate_profile
 from app.agents.job_agent import extract_job_profile
 from app.agents.skill_gap_agent import explain_skill_gaps

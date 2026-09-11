@@ -9,7 +9,9 @@ from app.agents.job_agent import extract_job_profile
 from app.agents.skill_gap_agent import explain_skill_gaps
 from app.agents.evidence_agent import extract_evidence
 from app.agents.recruiter_agent import generate_recruiter_summary
-from app.services.mock_matcher import match_candidate_to_job
+from contracts.candidate import CandidateProfile
+from contracts.job import JobProfile
+from matching.pipeline import match_candidate_to_job
 
 logger = logging.getLogger(__name__)
 
@@ -56,8 +58,8 @@ def job_agent_node(state: RecruitmentState) -> Dict[str, Any]:
 
 def matching_node(state: RecruitmentState) -> Dict[str, Any]:
     """
-    Simulates Member 2's Matching Engine integration.
-    Computes scores for each Candidate x Job combination.
+    Executes Member 2's deterministic Matching & Rules Engine.
+    Computes weighted scores, requirement assessments, and gaps for each Candidate x Job pair.
     """
     logger.info("Executing Node: matching")
     matches: List[Dict[str, Any]] = []
@@ -66,7 +68,9 @@ def matching_node(state: RecruitmentState) -> Dict[str, Any]:
 
     for cid, c_data in cand_profiles.items():
         for jid, j_data in job_profiles.items():
-            match_res = match_candidate_to_job(c_data, j_data)
+            cand_obj = CandidateProfile.model_validate(c_data) if isinstance(c_data, dict) else c_data
+            job_obj = JobProfile.model_validate(j_data) if isinstance(j_data, dict) else j_data
+            match_res = match_candidate_to_job(cand_obj, job_obj)
             matches.append(match_res.model_dump())
 
     # Sort matches by overall score descending

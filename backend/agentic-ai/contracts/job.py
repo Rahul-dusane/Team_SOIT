@@ -4,7 +4,7 @@ Domain-Independent Validated Pydantic contracts for Job Requirement and Job Prof
 Supports arbitrary domain requirements (competency, qualification, certification, experience_duration, responsibility).
 """
 
-from typing import List, Optional
+from typing import List, Optional, Any
 from pydantic import BaseModel, Field, field_validator, model_validator
 
 
@@ -18,13 +18,19 @@ class JobRequirement(BaseModel):
     weight: float = Field(default=10.0, ge=0.0)
     minimum_duration_months: int = Field(default=0, ge=0)
 
-    @field_validator("importance")
+    @field_validator("importance", mode="before")
     @classmethod
-    def validate_importance(cls, v: str) -> str:
-        valid_types = {"must_have", "preferred", "nice_to_have"}
-        if v not in valid_types:
-            raise ValueError(f"importance must be one of {valid_types}, got '{v}'")
-        return v
+    def validate_importance(cls, v: Any) -> str:
+        if not v or not isinstance(v, str):
+            return "must_have"
+        val = v.strip().lower().replace("-", "_").replace(" ", "_")
+        if val in {"critical", "high", "must_have", "musthave", "mandatory", "essential"}:
+            return "must_have"
+        elif val in {"medium", "preferred", "preference", "important"}:
+            return "preferred"
+        elif val in {"low", "nice_to_have", "nicetohave", "optional"}:
+            return "nice_to_have"
+        return "must_have"
 
     @field_validator("category")
     @classmethod

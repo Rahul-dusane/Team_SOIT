@@ -19,11 +19,22 @@ from vector_store import store_chunks_with_embeddings
 
 def extract_candidate_profile_from_text(raw_text: str, filename: str, candidate_id: str = None) -> CandidateProfile:
     """
-    Rule/NLP-assisted extractor that builds a CandidateProfile from raw resume text.
-    Handles non-IT and IT profiles cleanly.
+    Factual candidate extractor that builds a CandidateProfile from raw resume text.
+    Strictly preserves factual evidence: unmentioned education or experience arrays are left empty ([]).
+    Never invents degrees, placeholder roles, or fake companies.
     """
     if not candidate_id:
         candidate_id = f"CAND_{uuid.uuid4().hex[:8].upper()}"
+
+    # Try Member 1 Structured Agent Extractor first if available
+    try:
+        from app.agents.resume_agent import extract_candidate_profile as member1_extract
+        agent_profile = member1_extract(candidate_id, raw_text)
+        if agent_profile:
+            agent_profile.unmapped_fields["source_filename"] = filename
+            return agent_profile
+    except Exception:
+        pass
 
     lines = [line.strip() for line in raw_text.splitlines() if line.strip()]
     
@@ -62,37 +73,26 @@ def extract_candidate_profile_from_text(raw_text: str, filename: str, candidate_
         if re.search(r'\b' + re.escape(kw) + r'\b', raw_text, re.IGNORECASE):
             skills_found.append(CandidateSkill(raw_skill=kw, normalized_skill=kw.lower(), confidence=1.0))
 
-    # Experience entries heuristic
+    # Experience entries extraction (strictly factual)
     experiences = []
     role_matches = re.findall(r'(?:Senior|Lead|Staff|Junior|Associate)?\s*(?:Software Engineer|Backend Developer|Developer|Accountant|Financial Analyst|Nurse|Clinical Nurse|Manager|Consultant)', raw_text, re.IGNORECASE)
     for role in set(role_matches):
         experiences.append(CandidateExperience(
             role=role,
-            company="Extracted Experience",
-            duration_months=max(exp_months, 12),
-            description=f"Experienced as {role} handling key operational responsibilities."
-        ))
-
-    if not experiences:
-        experiences.append(CandidateExperience(
-            role="Professional",
-            company="General Industry",
+            company=None,
             duration_months=exp_months,
-            description="Extracted candidate background"
+            description=None
         ))
 
-    # Education entries heuristic
+    # Education entries extraction (strictly factual)
     education = []
     edu_matches = re.findall(r'\b(?:B\.?Tech|M\.?Tech|B\.?E|B\.?Sc|M\.?Sc|BCA|MCA|MBA|Bachelor|Master|Diploma|B\.?Com)\b[^\.\n]*', raw_text, re.IGNORECASE)
     for edu_str in edu_matches[:2]:
         education.append(CandidateEducation(
             degree=edu_str.strip(),
-            field="Specialized Field",
-            institution="University"
+            field=None,
+            institution=None
         ))
-
-    if not education:
-        education.append(CandidateEducation(degree="Bachelor Degree", field="General Studies"))
 
     # Extract certifications and domains
     certifications = []

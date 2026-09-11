@@ -47,6 +47,8 @@ try:
 except ImportError:
     MEMBER1_AGENTS_AVAILABLE = False
 
+from db.connection import get_db, init_db, check_db_health
+
 load_dotenv()
 
 app = FastAPI(
@@ -75,11 +77,14 @@ def startup_event():
 
 @app.get("/health")
 @app.get("/api/v1/health")
-def health_check():
+def health_check(db: Session = Depends(get_db)):
+    db_status = check_db_health(db)
+    is_healthy = db_status.get("status") == "connected"
     return {
-        "status": "ok",
+        "status": "ok" if is_healthy else "degraded",
         "service": "HireLens API Backbone",
         "version": "1.0.0",
+        "database": db_status,
         "member1_agents": MEMBER1_AGENTS_AVAILABLE
     }
 
@@ -187,8 +192,8 @@ def run_candidate_job_match(req: RunMatchRequest, db: Session = Depends(get_db))
     try:
         match_model = match_repo.save_match_atomic(match_result)
         match_id = match_model.match_id
-    except Exception:
-        match_id = f"M_{candidate.candidate_id}_{job.job_id}"
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Database persistence failed: {e}")
 
     return {
         "status": "success",
@@ -203,7 +208,7 @@ def run_candidate_job_match(req: RunMatchRequest, db: Session = Depends(get_db))
 
 
 @app.get("/api/v1/ranking")
-@app.get("/api/v1/matches/{job_id}")
+@app.get("/api/v1/ranking/{job_id}")
 def get_candidate_rankings_for_job(job_id: str, db: Session = Depends(get_db)):
     job_repo = JobRepository(db)
     job = job_repo.get_job(job_id)
@@ -235,12 +240,20 @@ def get_candidate_rankings_for_job(job_id: str, db: Session = Depends(get_db)):
 
 
 @app.get("/api/v1/matches/{job_id}/{candidate_id}")
-def get_match_breakdown(job_id: str, candidate_id: str, db: Session = Depends(get_db)):
+@app.get("/api/v1/matches/{match_id}")
+def get_match_breakdown(job_id: str, candidate_id: Optional[str] = None, match_id: Optional[str] = None, db: Session = Depends(get_db)):
     match_repo = MatchRepository(db)
-    match_record = match_repo.get_match(job_id, candidate_id)
+    match_record = None
+
+    if candidate_id:
+        match_record = match_repo.get_match(job_id, candidate_id)
+    else:
+        # job_id param was passed as single match_id
+        from db.models import MatchModel
+        match_record = db.query(MatchModel).filter(MatchModel.match_id == job_id).first()
 
     if not match_record:
-        raise HTTPException(status_code=404, detail=f"Match record for Job '{job_id}' and Candidate '{candidate_id}' not found.")
+        raise HTTPException(status_code=404, detail="Match record not found.")
 
     assessments = [
         {
@@ -320,22 +333,26 @@ class WorkflowRunRequest(BaseModel):
 
 
 @app.post("/agents/resume")
-def parse_resume_endpoint(req: ResumeParseRequest):
+def parse_resume_endpoint(req: ResumeParseRequest, db: Session = Depends(get_db)):
     if not MEMBER1_AGENTS_AVAILABLE:
         raise HTTPException(status_code=501, detail="Member 1 agents module not configured.")
     try:
         profile = extract_candidate_profile(req.candidate_id, req.text)
+        cand_repo = CandidateRepository(db)
+        cand_repo.save_candidate(profile)
         return {"status": "success", "candidate_id": req.candidate_id, "profile": profile.model_dump()}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.post("/agents/job")
-def parse_job_endpoint(req: JobParseRequest):
+def parse_job_endpoint(req: JobParseRequest, db: Session = Depends(get_db)):
     if not MEMBER1_AGENTS_AVAILABLE:
         raise HTTPException(status_code=501, detail="Member 1 agents module not configured.")
     try:
         profile = extract_job_profile(req.job_id, req.text)
+        job_repo = JobRepository(db)
+        job_repo.save_job(profile)
         return {"status": "success", "job_id": req.job_id, "profile": profile.model_dump()}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -345,7 +362,7 @@ WORKFLOW_STORE: Dict[str, Dict[str, Any]] = {}
 
 
 @app.post("/workflows/run")
-def run_recruitment_workflow_endpoint(req: WorkflowRunRequest):
+def run_recruitment_workflow_endpoint(req: WorkflowRunRequest, db: Session = Depends(get_db)):
     if not MEMBER1_AGENTS_AVAILABLE:
         raise HTTPException(status_code=501, detail="Member 1 agents module not configured.")
     if not req.resumes or not req.jobs:
@@ -355,6 +372,48 @@ def run_recruitment_workflow_endpoint(req: WorkflowRunRequest):
         import uuid
         workflow_id = f"wf_{uuid.uuid4().hex[:8]}"
         result = run_pipeline(resume_texts=req.resumes, job_texts=req.jobs)
+
+        cand_repo = CandidateRepository(db)
+        job_repo = JobRepository(db)
+        match_repo = MatchRepository(db)
+
+        # Durable Database Persistence of Candidate Profiles
+        for cid, c_data in (result.get("candidate_profiles") or {}).items():
+            try:
+                c_obj = CandidateProfile.model_validate(c_data)
+                cand_repo.save_candidate(c_obj)
+            except Exception:
+                pass
+
+        # Durable Database Persistence of Job Profiles
+        for jid, j_data in (result.get("job_profiles") or {}).items():
+            try:
+                j_obj = JobProfile.model_validate(j_data)
+                job_repo.save_job(j_obj)
+            except Exception:
+                pass
+
+        # Durable Database Persistence of Matches & Assessments
+        for m_data in (result.get("match_results") or {}):
+            try:
+                m_obj = MatchResult.model_validate(m_data)
+                pair_key = f"{m_obj.candidate_id}_{m_obj.job_id}"
+                summary_data = (result.get("recruiter_summaries") or {}).get(pair_key, {})
+                summary_text = summary_data.get("summary", "")
+                strengths = summary_data.get("strengths", [])
+                concerns = summary_data.get("concerns", [])
+                recommendation = summary_data.get("recommendation", "")
+
+                match_repo.save_match_atomic(
+                    match_result=m_obj,
+                    summary_text=summary_text,
+                    key_strengths=strengths,
+                    key_gaps=concerns,
+                    recommendation=recommendation
+                )
+            except Exception:
+                pass
+
         response_data = {
             "workflow_id": workflow_id,
             "status": result.get("workflow_status", "COMPLETED"),

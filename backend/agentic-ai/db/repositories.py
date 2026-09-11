@@ -429,22 +429,18 @@ class MatchRepository:
             recommendation=recommendation or decision_val
         ))
 
-        # Add Agent Logs
-        default_logs = agent_logs or [
-            {"agent_name": "Resume Ingestion Agent", "step_index": 1, "status": "success", "duration_ms": 120},
-            {"agent_name": "Requirement Evidence Agent", "step_index": 2, "status": "success", "duration_ms": 250},
-            {"agent_name": "Scoring & Gap Analysis Agent", "step_index": 3, "status": "success", "duration_ms": 180},
-        ]
-        for log in default_logs:
-            self.db.add(AgentRunLogModel(
-                match_id=match_id,
-                agent_name=log["agent_name"],
-                step_index=log.get("step_index", 1),
-                status=log.get("status", "success"),
-                input_summary=log.get("input_summary", "Candidate profile evaluation"),
-                output_summary=log.get("output_summary", f"Score {match_result.overall_score}"),
-                duration_ms=log.get("duration_ms", 100)
-            ))
+        # Add Agent Logs (strictly real logs, zero invented defaults)
+        if agent_logs:
+            for log in agent_logs:
+                self.db.add(AgentRunLogModel(
+                    match_id=match_id,
+                    agent_name=log.get("agent_name", "Agent"),
+                    step_index=log.get("step_index", 1),
+                    status=log.get("status", "success"),
+                    input_summary=log.get("input_summary", ""),
+                    output_summary=log.get("output_summary", ""),
+                    duration_ms=log.get("duration_ms", 0)
+                ))
 
         self.db.commit()
         self.db.refresh(match_model)

@@ -46,6 +46,14 @@ def get_embedding_model():
     return _embedding_model_cache
 
 
+def get_embedding_model_name() -> str:
+    """Returns the precise model version string for vector metadata audit trail."""
+    model = get_embedding_model()
+    if isinstance(model, FallbackVectorModel):
+        return "fallback-hash-v1"
+    return EMBEDDING_MODEL_NAME
+
+
 def embed_text(text: str) -> List[float]:
     """Generates 384-dimensional normalized vector embedding for text."""
     if not text.strip():
@@ -66,16 +74,17 @@ def store_chunks_with_embeddings(
     chunks: List[Dict[str, Any]]
 ) -> List[DocumentChunkModel]:
     """
-    Computes vector embeddings for chunks and persists them into document_chunks.
+    Computes vector embeddings for chunks and persists them into document_chunks with exact model versioning.
     """
     from db.repositories import DocumentRepository
     
+    model_name = get_embedding_model_name()
     chunks_with_vectors = []
     for chunk in chunks:
         vec = embed_text(chunk["content"])
         chunk_copy = dict(chunk)
         chunk_copy["embedding"] = vec
-        chunk_copy["embedding_model"] = EMBEDDING_MODEL_NAME
+        chunk_copy["embedding_model"] = model_name
         chunks_with_vectors.append(chunk_copy)
 
     doc_repo = DocumentRepository(db)

@@ -62,6 +62,32 @@ engine = create_engine(DATABASE_URL, connect_args=connect_args, pool_pre_ping=Tr
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
+from sqlalchemy import text
+
+def check_db_health(db=None) -> dict:
+    """Verifies live database connectivity by executing a probe query."""
+    close_after = False
+    if db is None:
+        db = SessionLocal()
+        close_after = True
+    try:
+        db.execute(text("SELECT 1"))
+        return {
+            "status": "connected",
+            "dialect": engine.dialect.name,
+            "is_sqlite": IS_SQLITE
+        }
+    except Exception as e:
+        return {
+            "status": "disconnected",
+            "error": str(e),
+            "is_sqlite": IS_SQLITE
+        }
+    finally:
+        if close_after:
+            db.close()
+
+
 def get_db():
     db = SessionLocal()
     try:
@@ -78,3 +104,4 @@ try:
     init_db()
 except Exception as e:
     print(f"[Warning] Failed to initialize DB tables automatically: {e}")
+
