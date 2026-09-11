@@ -1,26 +1,35 @@
 """
 embeddings.py
-Lazy singleton EmbeddingService wrapping sentence-transformers with MD5/SHA-256 text hash caching.
+Thread-safe lazy singleton EmbeddingService wrapping sentence-transformers with bounded cache and SHA-256 key hashing.
 """
 
 import hashlib
-from typing import List, Dict, Union
+import threading
+from typing import List, Dict
 import numpy as np
+
+MAX_CACHE_SIZE = 5000
+
 
 class EmbeddingService:
     _instance = None
+    _lock = threading.Lock()
 
     def __new__(cls):
         if cls._instance is None:
-            cls._instance = super(EmbeddingService, cls).__new__(cls)
-            cls._instance._model = None
-            cls._instance._cache: Dict[str, np.ndarray] = {}
+            with cls._lock:
+                if cls._instance is None:
+                    cls._instance = super(EmbeddingService, cls).__new__(cls)
+                    cls._instance._model = None
+                    cls._instance._cache: Dict[str, np.ndarray] = {}
         return cls._instance
 
     def _get_model(self):
         if self._model is None:
-            from sentence_transformers import SentenceTransformer
-            self._model = SentenceTransformer("all-MiniLM-L6-v2")
+            with self._lock:
+                if self._model is None:
+                    from sentence_transformers import SentenceTransformer
+                    self._model = SentenceTransformer("all-MiniLM-L6-v2")
         return self._model
 
     def _hash_text(self, text: str) -> str:
@@ -37,7 +46,15 @@ class EmbeddingService:
 
         model = self._get_model()
         vector = model.encode(text, convert_to_numpy=True)
-        self._cache[key] = vector
+
+        # Enforce bounded LRU-style cache size
+        with self._lock:
+            if len(self._cache) >= MAX_CACHE_SIZE:
+                # Remove oldest entry
+                first_key = next(iter(self._cache))
+                del self._cache[first_key]
+            self._cache[key] = vector
+
         return vector
 
     def embed_skills(self, skills: List[str]) -> List[np.ndarray]:

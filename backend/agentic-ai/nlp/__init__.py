@@ -6,3 +6,4 @@ from .skill_relationships import get_skill_relationship, get_transferability_sco
 from .role_normalizer import normalize_role
 from .embeddings import embed_text, embed_skills, EmbeddingService
 from .similarity import semantic_similarity
+from .evidence_retriever import retrieve_candidate_evidence

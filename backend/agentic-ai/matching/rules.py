@@ -48,16 +48,18 @@ def get_degree_level(degree_str: str) -> int:
 
 def classify_skill_match(required_skill: str, candidate_skills: List[CandidateSkill], cfg: MatchingConfig = DEFAULT_MATCHING_CONFIG) -> SkillMatchDetail:
     """
-    Strict 5-Tier Skill Match Hierarchy:
-    1. Exact canonical equality (EXACT) -> score 1.0
-    2. Known taxonomy lookup (TRANSFERABLE / RELATED / UNRELATED)
-       - If explicitly UNRELATED (e.g. Java vs JavaScript), reject immediately.
-       - If explicitly TRANSFERABLE or RELATED, lock in taxonomy classification.
-    3. Semantic similarity fallback (ONLY for unknown pairs NOT in taxonomy DB)
-       - If sim >= equivalent threshold -> EQUIVALENT
-       - If sim >= transferable threshold -> TRANSFERABLE
-       - If sim >= related threshold -> RELATED
-    4. Missing (MISSING) -> score 0.0
+    Strict 5-Tier Skill Match Hierarchy (Semantic embeddings NEVER produce 'equivalent'):
+    1. Exact canonical equality (EXACT) -> 1.0 multiplier
+    2. Verified alias lookup (EQUIVALENT) -> 1.0 multiplier
+    3. Known taxonomy lookup (TRANSFERABLE / RELATED / UNRELATED)
+       - 'unrelated' (e.g. Java vs JavaScript) -> reject immediately (0.0 multiplier)
+       - 'transferable' -> lock in transferable (0.7 multiplier)
+       - 'related' -> lock in related (0.4 multiplier)
+    4. Semantic similarity fallback for unknown pairs (TRANSFERABLE / RELATED / MISSING ONLY):
+       - sim >= transferable threshold (0.78) -> TRANSFERABLE (0.7 multiplier)
+       - sim >= related threshold (0.65) -> RELATED (0.4 multiplier)
+       - sim < 0.65 -> MISSING (0.0 multiplier)
+    5. Missing (MISSING) -> 0.0 multiplier
     """
     norm_req = normalize_skill(required_skill)
     req_canonical = norm_req["canonical"].lower()
@@ -88,10 +90,19 @@ def classify_skill_match(required_skill: str, candidate_skills: List[CandidateSk
                 score=multipliers["exact"]
             )
 
-        # 2. Known Taxonomy Relationship Lookup
+        # 2. Verified Alias Match (Confidence 1.0 from alias dictionary)
+        if norm_cand != c_raw and norm_cand.lower() == req_canonical:
+            return SkillMatchDetail(
+                required_skill=required_skill,
+                candidate_skill=c_raw,
+                match_type="equivalent",
+                similarity=1.0,
+                score=multipliers["equivalent"]
+            )
+
+        # 3. Known Taxonomy Relationship Lookup
         rel_type, rel_score = get_skill_relationship(req_canonical, cand_canonical)
         
-        # Explicitly reject known unrelated skills (e.g. Java vs JavaScript)
         if rel_type == "unrelated":
             continue
 
@@ -105,22 +116,12 @@ def classify_skill_match(required_skill: str, candidate_skills: List[CandidateSk
                     similarity=rel_score,
                     score=match_score
                 )
-            # Locked by taxonomy; do not allow embeddings to promote known relationships to 'equivalent'
             continue
 
-        # 3. Semantic Similarity Fallback (ONLY for unknown pairs not in taxonomy DB)
+        # 4. Semantic Similarity Fallback (ONLY for unknown pairs, CAPPED to transferable or related!)
         if rel_type == "unknown":
             sim = semantic_similarity(req_canonical, cand_canonical)
-            if sim >= thresholds["equivalent"]:
-                if multipliers["equivalent"] > best_match.score:
-                    best_match = SkillMatchDetail(
-                        required_skill=required_skill,
-                        candidate_skill=c_raw,
-                        match_type="equivalent",
-                        similarity=sim,
-                        score=multipliers["equivalent"]
-                    )
-            elif sim >= thresholds["transferable"]:
+            if sim >= thresholds["transferable"]:
                 if multipliers["transferable"] > best_match.score:
                     best_match = SkillMatchDetail(
                         required_skill=required_skill,
@@ -143,10 +144,6 @@ def classify_skill_match(required_skill: str, candidate_skills: List[CandidateSk
 
 
 def calculate_skill_coverage(required_skills: List[Union[str, JobRequirement]], candidate_skills: List[CandidateSkill], cfg: MatchingConfig = DEFAULT_MATCHING_CONFIG) -> Tuple[float, List[SkillMatchDetail]]:
-    """
-    Computes weighted skill coverage score (0.0 to 1.0) respecting individual requirement weights.
-    Formula: Sum(match_score * requirement_weight) / Sum(requirement_weight)
-    """
     if not required_skills:
         return 1.0, []
 
@@ -191,13 +188,12 @@ def check_mandatory_requirements(candidate: CandidateProfile, job: JobProfile, c
             message=f"Candidate experience ({candidate.total_experience_months} mos) is below mandatory requirement ({job.min_experience_months} mos)."
         ))
 
-    # Collect must-have skills from job.must_have_skills AND job.requirements where importance='must_have'
     must_have_set = set(job.must_have_skills)
     for req in job.requirements:
         if req.importance == "must_have":
             must_have_set.add(req.skill)
 
-    # 2. Must-Have Skills Constraint (Only exact or equivalent satisfies mandatory check)
+    # 2. Must-Have Skills Constraint (ONLY 'exact' or 'equivalent' satisfies mandatory check)
     for req_skill in must_have_set:
         match_detail = classify_skill_match(req_skill, candidate.skills, cfg)
         if match_detail.match_type not in ["exact", "equivalent"]:

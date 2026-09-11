@@ -1,25 +1,50 @@
 """
 scorer.py
-100-Point Weighted Scoring Engine and score breakdown calculator.
+Domain-Independent Requirement-Level Scorer and Score Breakdown calculator.
+Computes traceable requirement-level scores bounded strictly between 0.0 and 100.0.
 """
 
-from typing import Tuple
+from typing import Tuple, List
 from config.matching_config import DEFAULT_MATCHING_CONFIG, MatchingConfig
-from contracts.match import FeatureBreakdown, ScoreBreakdown
+from contracts.match import FeatureBreakdown, ScoreBreakdown, RequirementAssessment
 
 
-def calculate_match_score(features: FeatureBreakdown, cfg: MatchingConfig = DEFAULT_MATCHING_CONFIG) -> Tuple[float, ScoreBreakdown]:
+def calculate_match_score(features: FeatureBreakdown, assessments: List[RequirementAssessment] = None, cfg: MatchingConfig = DEFAULT_MATCHING_CONFIG) -> Tuple[float, ScoreBreakdown]:
+    """
+    Calculates overall score (0.0 to 100.0) and explicit breakdown.
+    If requirement assessments are provided, derives total score from requirement-level assessments.
+    Otherwise uses normalized feature weights.
+    """
+    if assessments and len(assessments) > 0:
+        total_weight = sum(a.weight for a in assessments)
+        total_score_contrib = sum(a.score_contribution for a in assessments)
+        
+        raw_score = (total_score_contrib / total_weight * 100.0) if total_weight > 0 else 100.0
+        raw_score = round(min(100.0, max(0.0, raw_score)), 2)
+
+        # Derive breakdown from category totals
+        breakdown = ScoreBreakdown(
+            must_have=round(features.must_have_coverage * 30.0, 2),
+            preferred=round(features.preferred_coverage * 15.0, 2),
+            experience=round(features.experience_fit * 20.0, 2),
+            role=round(features.role_similarity * 10.0, 2),
+            semantic=round(features.semantic_similarity * 10.0, 2),
+            education=round(features.education_match * 5.0, 2),
+            projects=round(features.project_relevance * 5.0, 2),
+            domain=round(features.domain_match * 5.0, 2)
+        )
+        return raw_score, breakdown
+
     weights = cfg.scoring_weights
-
     breakdown = ScoreBreakdown(
-        must_have=round(features.must_have_coverage * weights["must_have"], 2),
-        preferred=round(features.preferred_coverage * weights["preferred"], 2),
-        experience=round(features.experience_fit * weights["experience"], 2),
-        role=round(features.role_similarity * weights["role"], 2),
-        semantic=round(features.semantic_similarity * weights["semantic"], 2),
-        education=round(features.education_match * weights["education"], 2),
-        projects=round(features.project_relevance * weights["projects"], 2),
-        domain=round(features.domain_match * weights["domain"], 2)
+        must_have=round(features.must_have_coverage * weights.get("must_have", 30.0), 2),
+        preferred=round(features.preferred_coverage * weights.get("preferred", 15.0), 2),
+        experience=round(features.experience_fit * weights.get("experience", 20.0), 2),
+        role=round(features.role_similarity * weights.get("role", 10.0), 2),
+        semantic=round(features.semantic_similarity * weights.get("semantic", 10.0), 2),
+        education=round(features.education_match * weights.get("education", 5.0), 2),
+        projects=round(features.project_relevance * weights.get("projects", 5.0), 2),
+        domain=round(features.domain_match * weights.get("domain", 5.0), 2)
     )
 
     overall_score = round(
@@ -34,4 +59,5 @@ def calculate_match_score(features: FeatureBreakdown, cfg: MatchingConfig = DEFA
         2
     )
 
+    overall_score = round(min(100.0, max(0.0, overall_score)), 2)
     return overall_score, breakdown

@@ -1,6 +1,6 @@
 """
 match.py
-Pydantic contracts for Match Output, Skill Details, Skill Gaps, and Feature Breakdowns.
+Domain-Independent Pydantic contracts for Requirement Assessment, Skill Details, Skill Gaps, and Match Outputs.
 """
 
 from typing import List, Optional, Dict, Any
@@ -13,6 +13,19 @@ class SkillMatchDetail(BaseModel):
     match_type: str  # "exact", "equivalent", "transferable", "related", "missing"
     similarity: float = 0.0
     score: float = 0.0
+
+
+class RequirementAssessment(BaseModel):
+    requirement_id: str
+    description: str
+    category: str  # "competency", "qualification", "certification", "experience_duration", "responsibility"
+    mandatory: bool = False
+    weight: float = 10.0
+    status: str = "unknown"  # "satisfied" (1.0), "partially_supported" (0.5), "contradicted" (0.0), "unknown" (0.0)
+    confidence: float = 1.0
+    evidence_text: Optional[str] = None
+    evidence_page: Optional[int] = None
+    score_contribution: float = 0.0
 
 
 class TransferableGap(BaseModel):
@@ -60,11 +73,16 @@ class FailedRequirement(BaseModel):
 class MatchResult(BaseModel):
     candidate_id: str
     job_id: str
-    overall_score: float
-    mandatory_pass: bool
-    confidence_level: str = "HIGH"  # "HIGH", "MEDIUM", "LOW"
+    raw_score: float = 0.0                      # Unadjusted raw score sum (0.0 to 100.0)
+    overall_score: float = 0.0                  # Post-policy final score (0.0 if rejected)
+    evidence_coverage: float = 0.0              # % of job requirements with supporting candidate evidence (0.0 to 1.0)
+    mandatory_pass: bool = True
+    confidence_level: str = "HIGH"              # "HIGH", "MEDIUM", "LOW (Needs Review)", "REJECTED (Mandatory Failed)"
+    uncertainty_flags: List[str] = Field(default_factory=list)
     failed_requirements: List[FailedRequirement] = Field(default_factory=list)
-    features: FeatureBreakdown
-    score_breakdown: ScoreBreakdown
+    requirement_assessments: List[RequirementAssessment] = Field(default_factory=list)
+    features: FeatureBreakdown = Field(default_factory=FeatureBreakdown)
+    raw_score_breakdown: ScoreBreakdown = Field(default_factory=ScoreBreakdown)
+    score_breakdown: ScoreBreakdown = Field(default_factory=ScoreBreakdown)
     skill_matches: List[SkillMatchDetail] = Field(default_factory=list)
-    skill_gaps: SkillGaps
+    skill_gaps: SkillGaps = Field(default_factory=SkillGaps)

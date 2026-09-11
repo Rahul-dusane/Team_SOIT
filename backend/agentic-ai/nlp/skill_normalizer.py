@@ -1,22 +1,26 @@
 """
 skill_normalizer.py
-Skill normalization engine combining lowercasing, alias lookup, and RapidFuzz fuzzy matching.
+Domain-Independent Skill Normalization Engine supporting arbitrary skills (IT, Accounting, Healthcare, etc.).
+Preserves raw text and flags uncertain normalization without forcing technical mappings.
 """
 
 import os
 import csv
 from typing import Dict, Any, List
 from rapidfuzz import process, fuzz
-from .aliases import lookup_alias
+from nlp.aliases import lookup_alias
 
-# Known canonical skills list
+# Base canonical skills list
 CANONICAL_SKILLS: List[str] = [
     "Python", "JavaScript", "TypeScript", "Java", "C++", "Go", "Rust",
     "PostgreSQL", "MySQL", "MongoDB", "Redis", "SQLite",
     "FastAPI", "Flask", "Django", "React", "Angular", "Vue.js", "Node.js", "Express.js",
     "Docker", "Kubernetes", "AWS", "Azure", "Google Cloud Platform",
     "TensorFlow", "PyTorch", "scikit-learn", "Pandas", "NumPy", "spaCy",
-    "LangChain", "LangGraph"
+    "LangChain", "LangGraph",
+    "Bookkeeping", "Financial Accounting", "CPA", "Tax Auditing", "Cost Accounting",
+    "Clinical Nursing", "Patient Care", "Phlebotomy", "CPR", "Vital Signs",
+    "AutoCAD", "Structural Engineering", "Project Management", "Agile"
 ]
 
 
@@ -37,7 +41,8 @@ CANONICAL_LIST = load_canonical_skills_from_csv(_csv_file)
 
 def normalize_skill(skill_str: str) -> Dict[str, Any]:
     """
-    Normalizes a skill string to its canonical form.
+    Normalizes any skill string across any domain to its canonical form.
+    Preserves raw text and handles unfamiliar skills safely.
     Returns:
         {
             "raw": skill_str,
@@ -69,9 +74,9 @@ def normalize_skill(skill_str: str) -> Dict[str, Any]:
                 "confidence": 1.0
             }
 
-    # Tier 3: RapidFuzz Fuzzy String Matching
+    # Tier 3: High-Confidence RapidFuzz Matching (threshold 85 to prevent bad cross-domain mappings)
     match_result = process.extractOne(raw_clean, CANONICAL_LIST, scorer=fuzz.WRatio)
-    if match_result and match_result[1] >= 80.0:
+    if match_result and match_result[1] >= 85.0:
         canonical_name = match_result[0]
         confidence = float(match_result[1]) / 100.0
         return {
@@ -80,7 +85,7 @@ def normalize_skill(skill_str: str) -> Dict[str, Any]:
             "confidence": round(confidence, 2)
         }
 
-    # Fallback: Title case raw skill
+    # Fallback for Unfamiliar Skills: Preserve raw skill in Title Case safely!
     return {
         "raw": raw_clean,
         "canonical": raw_clean.title(),
