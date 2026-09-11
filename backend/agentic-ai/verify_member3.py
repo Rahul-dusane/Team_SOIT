@@ -202,9 +202,12 @@ PROJECTS:
         assert len(batch_results) == 3
         
         saved_batch_count = 0
+        job_repo2 = JobRepository(db2)
         for job in bench_jobs:
+            job_repo2.save_job(job)
             for cand in bench_cands:
-                res = match_candidate_to_job(cand, job, db=db2)
+                cand_repo2.save_candidate(cand)
+                res = match_candidate_to_job(cand, job)
                 match_repo2.save_match_atomic(res)
                 saved_batch_count += 1
 

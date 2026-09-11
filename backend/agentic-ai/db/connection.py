@@ -4,22 +4,55 @@ SQLAlchemy Database connection management supporting PostgreSQL/Supabase and SQL
 """
 
 import os
+from dotenv import load_dotenv
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
 
+load_dotenv()
+
 Base = declarative_base()
 
+from urllib.parse import quote_plus
+
+def sanitize_database_url(url: str) -> str:
+    """Encodes special characters in database passwords (e.g. '$' -> '%24') to prevent connection URI host parsing errors."""
+    if not url or "[YOUR-PASSWORD]" in url:
+        return url
+    
+    try:
+        scheme_idx = url.find("://")
+        if scheme_idx != -1:
+            rest = url[scheme_idx + 3:]
+            if "@" in rest:
+                user_pass, host_db = rest.rsplit("@", 1)
+                if ":" in user_pass:
+                    user, raw_pass = user_pass.split(":", 1)
+                    # Unquote first to prevent double-encoding if already quoted
+                    from urllib.parse import unquote
+                    unquoted_pass = unquote(raw_pass)
+                    safe_pass = quote_plus(unquoted_pass)
+                    return f"postgresql+psycopg://{user}:{safe_pass}@{host_db}"
+    except Exception:
+        pass
+    
+    if (url.startswith("postgres://") or url.startswith("postgresql://")) and not url.startswith("postgresql+"):
+        url = url.replace("postgres://", "postgresql+psycopg://", 1).replace("postgresql://", "postgresql+psycopg://", 1)
+    return url
+
+
 def get_database_url() -> str:
+    # If TESTING env var is set, use local SQLite for fast isolated test execution
+    if os.getenv("TESTING") == "true":
+        db_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "hirelens_local.db"))
+        return f"sqlite:///{db_path}"
+
     db_url = os.getenv("DATABASE_URL") or os.getenv("SUPABASE_DB_URL")
-    if not db_url:
-        # Fallback to local SQLite file for offline unit testing
+    if not db_url or "[YOUR-PASSWORD]" in db_url:
+        # Fallback to local SQLite file for offline unit testing when placeholder password is present
         db_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "hirelens_local.db"))
         return f"sqlite:///{db_path}"
     
-    # Fix potential postgres:// vs postgresql:// scheme issue
-    if db_url.startswith("postgres://"):
-        db_url = db_url.replace("postgres://", "postgresql://", 1)
-    return db_url
+    return sanitize_database_url(db_url)
 
 DATABASE_URL = get_database_url()
 IS_SQLITE = DATABASE_URL.startswith("sqlite")

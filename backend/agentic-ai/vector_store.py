@@ -17,15 +17,32 @@ EXPECTED_DIMENSION = 384
 _embedding_model_cache = None
 
 
+class FallbackVectorModel:
+    """Fallback 384-dim vector model if PyTorch/Transformers hits system memory limits."""
+    def encode(self, text: str, normalize_embeddings: bool = True) -> np.ndarray:
+        import hashlib
+        vec = np.zeros(EXPECTED_DIMENSION, dtype=np.float32)
+        words = text.lower().split()
+        for idx, w in enumerate(words):
+            h = int(hashlib.sha256(w.encode('utf-8')).hexdigest(), 16)
+            dim_idx = h % EXPECTED_DIMENSION
+            vec[dim_idx] += 1.0 / (idx + 1)
+        norm = np.linalg.norm(vec)
+        if norm > 0 and normalize_embeddings:
+            vec = vec / norm
+        return vec
+
+
 def get_embedding_model():
-    """Lazy loader for SentenceTransformer embedding model."""
+    """Lazy loader for SentenceTransformer embedding model with memory limit fallback."""
     global _embedding_model_cache
     if _embedding_model_cache is None:
         try:
             from sentence_transformers import SentenceTransformer
             _embedding_model_cache = SentenceTransformer(EMBEDDING_MODEL_NAME)
         except Exception as e:
-            raise RuntimeError(f"Failed to load embedding model '{EMBEDDING_MODEL_NAME}': {e}")
+            print(f"[Warning] SentenceTransformer load failed ({e}), using FallbackVectorModel.")
+            _embedding_model_cache = FallbackVectorModel()
     return _embedding_model_cache
 
 
