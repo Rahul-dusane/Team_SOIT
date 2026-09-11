@@ -1,9 +1,4 @@
-"""
-chunker.py
-Context-Aware Document Chunker.
-Splits text into overlapping sliding-window chunks while preserving page numbers, start/end character offsets, and section titles.
-"""
-
+import re
 from typing import List, Dict, Any
 
 
@@ -14,18 +9,10 @@ def chunk_pages_or_sections(
 ) -> List[Dict[str, Any]]:
     """
     Chunks structured units (pages or sections) into overlapping text chunks with exact source metadata.
-    Returns list of dicts:
-    {
-        "content": str,
-        "page_number": int,
-        "start_char": int,
-        "end_char": int,
-        "section_title": str,
-        "word_count": int
-    }
+    Uses regex word span indices to guarantee start_char and end_char exactly slice the original text.
     """
     chunks = []
-    global_char_offset = 0
+    global_offset = 0
 
     for unit in structured_units:
         page_num = unit.get("page_number", 1)
@@ -34,23 +21,26 @@ def chunk_pages_or_sections(
         if not text.strip():
             continue
 
-        words = text.split()
-        if not words:
+        # Find word tokens with their exact character start and end spans in original text
+        word_spans = []
+        for match in re.finditer(r'\S+', text):
+            word_spans.append((match.start(), match.end()))
+
+        if not word_spans:
             continue
 
         step = max(1, chunk_size_words - overlap_words)
-        for i in range(0, len(words), step):
-            chunk_words = words[i:i + chunk_size_words]
-            chunk_text = " ".join(chunk_words)
+        for i in range(0, len(word_spans), step):
+            window = word_spans[i:i + chunk_size_words]
+            if not window:
+                break
             
-            # Estimate character boundaries within unit
-            try:
-                start_in_unit = text.index(chunk_words[0])
-            except (ValueError, IndexError):
-                start_in_unit = 0
-
-            start_char = global_char_offset + start_in_unit
-            end_char = start_char + len(chunk_text)
+            unit_start_char = window[0][0]
+            unit_end_char = window[-1][1]
+            chunk_text = text[unit_start_char:unit_end_char]
+            
+            start_char = global_offset + unit_start_char
+            end_char = global_offset + unit_end_char
 
             chunks.append({
                 "content": chunk_text,
@@ -58,12 +48,12 @@ def chunk_pages_or_sections(
                 "start_char": start_char,
                 "end_char": end_char,
                 "section_title": sec_title,
-                "word_count": len(chunk_words)
+                "word_count": len(window)
             })
 
-            if i + chunk_size_words >= len(words):
+            if i + chunk_size_words >= len(word_spans):
                 break
 
-        global_char_offset += len(text) + 2
+        global_offset += len(text) + 2
 
     return chunks

@@ -96,12 +96,7 @@ def get_db():
         db.close()
 
 def init_db():
+    """Initializes database tables after ORM models are registered."""
     from db.models import Base as ModelsBase
     ModelsBase.metadata.create_all(bind=engine)
-
-# Ensure tables exist on database initialization
-try:
-    init_db()
-except Exception as e:
-    print(f"[Warning] Failed to initialize DB tables automatically: {e}")
 

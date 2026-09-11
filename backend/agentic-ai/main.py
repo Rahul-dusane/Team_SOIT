@@ -157,11 +157,13 @@ def health_check(db: Session = Depends(get_db)):
 @app.post("/api/v1/upload")
 async def upload_resumes(
     files: List[UploadFile] = File(...),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    auth: bool = Depends(verify_api_key)
 ):
     """
     Multipart Resume File Upload.
     Validates, parses (PDF/DOCX/TXT), chunks, embeds 384-dim vectors, extracts structured candidate profiles, and persists records into DB.
+    Requires authentication when API_KEY is set.
     """
     if not files:
         raise HTTPException(status_code=400, detail="No files uploaded.")
@@ -176,14 +178,14 @@ async def upload_resumes(
 
 
 @app.get("/api/v1/candidates", response_model=List[Dict[str, Any]])
-def list_candidates(db: Session = Depends(get_db)):
+def list_candidates(db: Session = Depends(get_db), auth: bool = Depends(verify_api_key)):
     cand_repo = CandidateRepository(db)
     candidates = cand_repo.list_candidates()
     return [c.model_dump() for c in candidates]
 
 
 @app.get("/api/v1/candidates/{candidate_id}")
-def get_candidate_by_id(candidate_id: str, db: Session = Depends(get_db)):
+def get_candidate_by_id(candidate_id: str, db: Session = Depends(get_db), auth: bool = Depends(verify_api_key)):
     cand_repo = CandidateRepository(db)
     candidate = cand_repo.get_candidate(candidate_id)
     if not candidate:
@@ -192,7 +194,7 @@ def get_candidate_by_id(candidate_id: str, db: Session = Depends(get_db)):
 
 
 @app.delete("/api/v1/candidates/{candidate_id}")
-def delete_candidate_by_id(candidate_id: str, db: Session = Depends(get_db)):
+def delete_candidate_by_id(candidate_id: str, db: Session = Depends(get_db), auth: bool = Depends(verify_api_key)):
     cand_repo = CandidateRepository(db)
     success = cand_repo.delete_candidate(candidate_id)
     if not success:
@@ -201,7 +203,7 @@ def delete_candidate_by_id(candidate_id: str, db: Session = Depends(get_db)):
 
 
 @app.post("/api/v1/jobs")
-def create_or_update_job(job: JobProfile, db: Session = Depends(get_db)):
+def create_or_update_job(job: JobProfile, db: Session = Depends(get_db), auth: bool = Depends(verify_api_key)):
     job_repo = JobRepository(db)
     job_repo.save_job(job)
     return {"status": "success", "job_id": job.job_id, "title": job.title}
