@@ -1,7 +1,7 @@
 """
 verify_member2.py
 Verification script executing end-to-end 10 candidates x 3 jobs (30 match pairs) batch matching,
-evaluating metrics against ground truth, and printing formatted ranking tables.
+evaluating metrics against ground truth, and enforcing 100% batch completion without silent failures.
 """
 
 import sys
@@ -11,7 +11,7 @@ import os
 sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
 
 from contracts.candidate import CandidateProfile, CandidateSkill, CandidateExperience, CandidateEducation
-from contracts.job import JobProfile
+from contracts.job import JobProfile, JobRequirement
 from matching.batch_matcher import match_all
 from matching.evaluation import evaluate_batch_results
 
@@ -34,7 +34,7 @@ def generate_sample_dataset():
     candidates = []
     for i in range(1, 11):
         cand_id = f"C{i:02d}"
-        c_skills = [CandidateSkill(raw_skill=s) for s in skills_pool[i-1]]
+        c_skills = [CandidateSkill(raw_skill=s, confidence=0.95) for s in skills_pool[i-1]]
         exp_months = (11 - i) * 6 + 12
         candidates.append(CandidateProfile(
             candidate_id=cand_id,
@@ -52,7 +52,13 @@ def generate_sample_dataset():
             description="Python FastAPI backend developer with cloud experience",
             min_experience_months=24,
             must_have_skills=["Python", "FastAPI"],
-            preferred_skills=["PostgreSQL", "AWS", "Docker"]
+            preferred_skills=["PostgreSQL", "AWS", "Docker"],
+            requirements=[
+                JobRequirement(skill="Python", importance="must_have", weight=20.0),
+                JobRequirement(skill="FastAPI", importance="must_have", weight=15.0),
+                JobRequirement(skill="PostgreSQL", importance="preferred", weight=10.0),
+                JobRequirement(skill="AWS", importance="preferred", weight=10.0),
+            ]
         ),
         JobProfile(
             job_id="J02",
@@ -60,7 +66,11 @@ def generate_sample_dataset():
             description="Python and React fullstack developer",
             min_experience_months=24,
             must_have_skills=["Python", "React"],
-            preferred_skills=["TypeScript", "PostgreSQL"]
+            preferred_skills=["TypeScript", "PostgreSQL"],
+            requirements=[
+                JobRequirement(skill="Python", importance="must_have", weight=15.0),
+                JobRequirement(skill="React", importance="must_have", weight=15.0),
+            ]
         ),
         JobProfile(
             job_id="J03",
@@ -68,7 +78,11 @@ def generate_sample_dataset():
             description="Machine learning engineer proficient in Python and PyTorch",
             min_experience_months=24,
             must_have_skills=["Python", "PyTorch"],
-            preferred_skills=["scikit-learn", "Pandas"]
+            preferred_skills=["scikit-learn", "Pandas"],
+            requirements=[
+                JobRequirement(skill="Python", importance="must_have", weight=20.0),
+                JobRequirement(skill="PyTorch", importance="must_have", weight=20.0),
+            ]
         )
     ]
 
@@ -81,10 +95,20 @@ def main():
     print("=" * 70)
 
     candidates, jobs = generate_sample_dataset()
-    print(f"[+] Loaded Dataset: {len(candidates)} Candidates x {len(jobs)} Jobs (Total 30 Match Pairs)")
+    expected_total_matches = len(candidates) * len(jobs)
+    print(f"[+] Loaded Dataset: {len(candidates)} Candidates x {len(jobs)} Jobs (Expected: {expected_total_matches} Match Pairs)")
 
     print("[*] Running Batch Matching Engine...")
     batch_results = match_all(candidates, jobs)
+
+    # Production Check: Verify every single candidate-job match executed successfully without errors
+    total_successful = sum(res["successful_matches"] for res in batch_results.values())
+    total_errors = sum(len(res["errors"]) for res in batch_results.values())
+
+    print(f"[+] Batch Match Summary: {total_successful}/{expected_total_matches} Succeeded | {total_errors} Errors")
+
+    if total_successful != expected_total_matches or total_errors > 0:
+        raise RuntimeError(f"Production Check Failed! Expected {expected_total_matches} successful matches, but got {total_successful} success and {total_errors} errors.")
 
     print("\n[+] Top 3 Rankings per Job:")
     for job_id, res in batch_results.items():
@@ -97,7 +121,7 @@ def main():
     print("\n" + eval_df.to_string(index=False))
 
     print("\n" + "=" * 70)
-    print("ALL MEMBER 2 PIPELINES & BENCHMARKS VERIFIED SUCCESSFULLY!")
+    print(f"ALL {expected_total_matches} MATCHES & BENCHMARKS VERIFIED SUCCESSFULLY WITH 0 ERRORS!")
     print("=" * 70)
 
 

@@ -1,12 +1,12 @@
 """
 feature_engineering.py
-Generates 8 core numerical features for a candidate-job pair.
+Generates 8 core numerical features for a candidate-job pair, integrating individual requirement weights and role normalization.
 """
 
 from typing import Dict, Any, Tuple, List
 from config.matching_config import DEFAULT_MATCHING_CONFIG, MatchingConfig
 from contracts.candidate import CandidateProfile
-from contracts.job import JobProfile
+from contracts.job import JobProfile, JobRequirement
 from contracts.match import FeatureBreakdown, SkillMatchDetail
 from matching.rules import calculate_skill_coverage, calculate_experience_fit, get_degree_level
 from nlp.role_normalizer import normalize_role
@@ -14,17 +14,39 @@ from nlp.similarity import semantic_similarity
 
 
 def build_features(candidate: CandidateProfile, job: JobProfile, cfg: MatchingConfig = DEFAULT_MATCHING_CONFIG) -> Tuple[FeatureBreakdown, List[SkillMatchDetail]]:
-    must_have_list = set(job.must_have_skills)
-    preferred_list = set(job.preferred_skills)
+    """
+    Computes candidate-job feature matrix.
+    Incorporates individual requirement weights from job.requirements alongside must_have_skills & preferred_skills.
+    """
+    must_have_reqs: List[Union[str, JobRequirement]] = []
+    preferred_reqs: List[Union[str, JobRequirement]] = []
+
+    # 1. Process structured job.requirements if present
+    seen_must_have = set()
+    seen_preferred = set()
 
     for req in job.requirements:
         if req.importance == "must_have":
-            must_have_list.add(req.skill)
+            must_have_reqs.append(req)
+            seen_must_have.add(req.skill.lower())
         elif req.importance in ["preferred", "nice_to_have"]:
-            preferred_list.add(req.skill)
+            preferred_reqs.append(req)
+            seen_preferred.add(req.skill.lower())
 
-    must_have_cov, must_have_matches = calculate_skill_coverage(list(must_have_list), candidate.skills, cfg)
-    preferred_cov, preferred_matches = calculate_skill_coverage(list(preferred_list), candidate.skills, cfg)
+    # Add legacy separate must_have_skills if not already in requirements
+    for s in job.must_have_skills:
+        if s.lower() not in seen_must_have:
+            must_have_reqs.append(s)
+            seen_must_have.add(s.lower())
+
+    # Add legacy separate preferred_skills if not already in requirements
+    for s in job.preferred_skills:
+        if s.lower() not in seen_preferred:
+            preferred_reqs.append(s)
+            seen_preferred.add(s.lower())
+
+    must_have_cov, must_have_matches = calculate_skill_coverage(must_have_reqs, candidate.skills, cfg)
+    preferred_cov, preferred_matches = calculate_skill_coverage(preferred_reqs, candidate.skills, cfg)
 
     all_skill_matches = must_have_matches + preferred_matches
 

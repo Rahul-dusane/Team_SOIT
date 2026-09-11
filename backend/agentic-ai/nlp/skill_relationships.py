@@ -27,6 +27,7 @@ RELATIONSHIPS_DB: Dict[Tuple[str, str], Tuple[str, float]] = {
     ("react", "vue.js"): ("related", 0.60),
     ("java", "javascript"): ("unrelated", 0.05),
     ("javascript", "java"): ("unrelated", 0.05),
+    ("python", "c++"): ("unrelated", 0.10),
     ("docker", "kubernetes"): ("related", 0.75),
 }
 
@@ -52,7 +53,7 @@ SKILL_RELATIONSHIPS_MAP = load_relationships_from_csv(_csv_file)
 def get_skill_relationship(skill_a: str, skill_b: str) -> Tuple[str, float]:
     """
     Returns (relationship_type, score) between two skills.
-    Relationship types: 'exact', 'equivalent', 'transferable', 'related', 'unrelated'
+    Relationship types: 'exact', 'equivalent', 'transferable', 'related', 'unrelated', 'unknown'
     """
     a_lower = skill_a.strip().lower()
     b_lower = skill_b.strip().lower()
@@ -64,7 +65,7 @@ def get_skill_relationship(skill_a: str, skill_b: str) -> Tuple[str, float]:
     if key in SKILL_RELATIONSHIPS_MAP:
         return SKILL_RELATIONSHIPS_MAP[key]
 
-    return ("unrelated", 0.0)
+    return ("unknown", 0.0)
 
 
 def get_transferability_score(skill_a: str, skill_b: str) -> float:
