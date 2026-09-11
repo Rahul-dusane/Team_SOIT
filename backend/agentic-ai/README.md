@@ -55,19 +55,30 @@ backend/agentic-ai/
 
 ## Testing & Execution
 
-### 1. Run Automated Pytest Suite
-```powershell
-$env:TESTING="true"; python -m pytest backend/agentic-ai/tests -v
+### 1. Environment & Gemini Configuration (`.env`)
+Create `.env` inside `backend/agentic-ai/`:
+```env
+LLM_PROVIDER=gemini
+GEMINI_API_KEY=your_gemini_api_key_here
+GEMINI_MODEL=gemini-1.5-flash
+API_KEY=hirelens_secret_key_2026
 ```
 
-### 2. Run Live Supabase Verification Script
+### 2. Run Automated Pytest Suite
+```powershell
+$env:OPENBLAS_NUM_THREADS="1"; $env:OMP_NUM_THREADS="1"; $env:TESTING="true"; python -m pytest backend/agentic-ai/tests -v
+```
+
+### 3. Run Live Supabase Verification Script
 ```powershell
 python backend/agentic-ai/verify_member3.py
 ```
 
-### 3. Start FastAPI Server
+### 4. Start FastAPI Production Server
 ```powershell
-uvicorn backend.agentic-ai.main:app --reload --port 8000
+$env:OPENBLAS_NUM_THREADS="1"; $env:OMP_NUM_THREADS="1"; python -m uvicorn main:app --app-dir backend/agentic-ai --port 8000
 ```
-* **Swagger API Docs**: `http://localhost:8000/docs`
-* **Health Check**: `http://localhost:8000/health`
+
+- **Interactive Swagger UI**: `http://localhost:8000/docs`
+- **Health & Metrics Endpoint**: `http://localhost:8000/health`
+- **API Documentation**: See [`API_DOCUMENTATION.md`](file:///C:/Users/rahul/.gemini/antigravity/brain/ecb0ed92-eaa8-4327-a6bf-66d746ccceb0/API_DOCUMENTATION.md)

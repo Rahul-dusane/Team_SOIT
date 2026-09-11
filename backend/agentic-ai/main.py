@@ -6,6 +6,7 @@ Exposes production REST API endpoints for resume upload, candidate management, j
 
 import sys
 import os
+import uuid
 
 # Prevent OpenBLAS memory allocation failures on Windows multi-threaded reloaders
 os.environ["OPENBLAS_NUM_THREADS"] = "1"
@@ -49,6 +50,13 @@ except ImportError:
 
 from db.connection import get_db, init_db, check_db_health
 
+from fastapi.security import APIKeyHeader
+from fastapi import Request, Security
+import time
+import logging
+
+logger = logging.getLogger("hirelens.monitoring")
+
 load_dotenv()
 
 app = FastAPI(
@@ -67,6 +75,38 @@ app.add_middleware(
 )
 
 
+@app.middleware("http")
+async def telemetry_middleware(request: Request, call_next):
+    """Production Telemetry Middleware: assigns X-Request-ID and tracks execution latency in ms."""
+    request_id = request.headers.get("X-Request-ID") or f"req_{uuid.uuid4().hex[:8]}"
+    start_time = time.time()
+    
+    response = await call_next(request)
+    
+    duration_ms = round((time.time() - start_time) * 1000, 2)
+    response.headers["X-Request-ID"] = request_id
+    response.headers["X-Process-Time-ms"] = str(duration_ms)
+    
+    logger.info(f"[{request_id}] {request.method} {request.url.path} - {response.status_code} ({duration_ms}ms)")
+    return response
+
+
+api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
+
+
+def verify_api_key(api_key: Optional[str] = Security(api_key_header)):
+    """Production Auth Dependency: verifies X-API-Key header when configured in production."""
+    expected_key = os.getenv("API_KEY")
+    if not expected_key or os.getenv("TESTING") == "true":
+        return True
+    if api_key and api_key == expected_key:
+        return True
+    raise HTTPException(
+        status_code=401,
+        detail="Unauthorized: Invalid or missing X-API-Key header."
+    )
+
+
 @app.on_event("startup")
 def startup_event():
     try:
@@ -78,14 +118,34 @@ def startup_event():
 @app.get("/health")
 @app.get("/api/v1/health")
 def health_check(db: Session = Depends(get_db)):
+    """Production Health Check with live DB connectivity, LLM provider status, and system metrics."""
     db_status = check_db_health(db)
     is_healthy = db_status.get("status") == "connected"
+    
+    cand_repo = CandidateRepository(db)
+    job_repo = JobRepository(db)
+    
+    total_candidates = len(cand_repo.list_candidates())
+    total_jobs = len(job_repo.list_jobs())
+    
+    llm_provider = os.getenv("LLM_PROVIDER", "openai").lower()
+    has_gemini = bool(os.getenv("GEMINI_API_KEY") and not os.getenv("GEMINI_API_KEY").startswith("your_"))
+    
     return {
         "status": "ok" if is_healthy else "degraded",
-        "service": "HireLens API Backbone",
+        "service": "HireLens Recruitment Intelligence Backbone",
         "version": "1.0.0",
+        "environment": os.getenv("ENVIRONMENT", "development"),
         "database": db_status,
-        "member1_agents": MEMBER1_AGENTS_AVAILABLE
+        "llm_provider": {
+            "configured_provider": llm_provider,
+            "gemini_active": has_gemini,
+            "member1_agents": MEMBER1_AGENTS_AVAILABLE
+        },
+        "metrics": {
+            "total_candidates": total_candidates,
+            "total_jobs": total_jobs
+        }
     }
 
 
