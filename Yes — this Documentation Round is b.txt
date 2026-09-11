@@ -1,0 +1,1064 @@
+Yes — **this Documentation Round is basically your project's technical + research proposal**, and for PS03 we can make it look like a professional hackathon submission.
+
+For **HireMind AI**, I recommend preparing a **10–15 page documentation** with diagrams, architecture, agent workflow, technology justification, scoring methodology, innovation, responsible AI, implementation plan, and references.
+
+If your organizers have given an **official documentation template/Word/PDF**, upload it and I can adapt everything exactly to that format. Otherwise, you can use the following as your submission structure.
+
+# 📘 PS03 Documentation
+
+## **HireMind AI — Multi-Agent Resume Screening & Job Matching Platform**
+
+---
+
+## 1. Cover Page
+
+**Hackathon Project Documentation**
+
+### **Problem Statement**
+
+**PS03 — Multi-Agent Resume Screening & Job Matching Platform**
+
+### **Project Title**
+
+# **HireMind AI**
+
+### *Multi-Agent Resume Screening & Intelligent Job Matching*
+
+**Technology Category:**
+NLP + LLM + Agentic AI
+
+**Team Name:**
+`[Your Team Name]`
+
+**Team Members:**
+
+1. `[Member 1]`
+2. `[Member 2]`
+3. `[Member 3]`
+4. `[Member 4]`
+5. `[Member 5]`
+
+**Institution:**
+`[College / University Name]`
+
+**Hackathon:**
+`[Hackathon Name]`
+
+**Date:**
+11 September 2026
+
+---
+
+# 2. Executive Summary
+
+### 2.1 Project Overview
+
+**HireMind AI** is a multi-agent recruitment platform designed to help recruiters efficiently evaluate candidates against job descriptions.
+
+Traditional resume screening often requires recruiters to manually inspect large numbers of resumes and compare candidate skills, education, experience, projects, and certifications with job requirements. This process can be time-consuming and may produce inconsistent evaluations.
+
+HireMind AI addresses this challenge through a coordinated set of specialized AI agents.
+
+The system accepts multiple resumes and job descriptions, extracts structured information, evaluates candidate-job compatibility, identifies skill gaps, ranks candidates, and generates an explainable recruiter recommendation.
+
+### Core workflow:
+
+```text
+Resumes + Job Descriptions
+          ↓
+     Resume Agent
+          ↓
+      Job Agent
+          ↓
+    Matching Agent
+          ↓
+    Skill Gap Agent
+          ↓
+    Recruiter Agent
+          ↓
+ Ranked Candidates
+ + Skill Gaps
+ + Explanation
+ + Recommendation
+```
+
+---
+
+# 3. Problem Analysis
+
+## 3.1 Existing Problem
+
+Recruiters may need to evaluate hundreds of resumes for a single position.
+
+Manual screening involves checking:
+
+* Technical skills
+* Educational qualifications
+* Work experience
+* Certifications
+* Projects
+* Job-specific requirements
+
+When several jobs and candidates are involved, the comparison becomes more complex.
+
+### Major challenges
+
+**1. Time-consuming screening**
+
+Recruiters must manually read and compare resumes.
+
+**2. Unstructured information**
+
+Resumes use different formats and terminology.
+
+**3. Skill matching difficulty**
+
+A resume may describe a skill differently from the job description.
+
+**4. Lack of explainability**
+
+Many automated systems provide a score without explaining why a candidate received it.
+
+**5. Skill gap identification**
+
+Traditional screening focuses primarily on matching rather than identifying what the candidate is missing.
+
+**6. Multiple-job comparison**
+
+Recruiters may need to determine which role is most suitable for each candidate.
+
+---
+
+# 4. Problem Statement
+
+> Recruiters need an efficient and explainable system to match candidates with job descriptions based on skills, experience, education, projects, certifications, and role requirements.
+
+The proposed system should process multiple resumes and job descriptions and produce a ranked list of suitable candidates with understandable reasons for the ranking.
+
+---
+
+# 5. Objectives
+
+### Primary Objective
+
+To develop a **multi-agent AI recruitment platform** capable of automatically analyzing resumes and job descriptions and producing explainable candidate-role matches.
+
+### Specific Objectives
+
+* Extract candidate information from resumes.
+* Extract requirements from job descriptions.
+* Match candidate skills with job requirements.
+* Evaluate experience and education compatibility.
+* Use semantic similarity to identify related skills.
+* Calculate an explainable compatibility score.
+* Rank candidates for each job.
+* Identify missing or weak skills.
+* Generate recruiter-friendly candidate summaries.
+* Support multiple candidates and multiple job descriptions.
+
+---
+
+# 6. Research / Existing Solutions
+
+Existing Applicant Tracking Systems commonly provide resume parsing, keyword filtering, candidate search, and ranking.
+
+However, a major opportunity exists in combining:
+
+```text
+Resume Parsing
+      +
+Semantic Matching
+      +
+Multi-Agent AI
+      +
+Skill Gap Analysis
+      +
+Explainable Recommendations
+```
+
+Instead of treating the LLM as a single general-purpose chatbot, HireMind AI divides recruitment analysis into specialized agents.
+
+---
+
+# 7. Proposed Solution
+
+## 7.1 System Concept
+
+HireMind AI consists of five specialized agents coordinated by an AI orchestrator.
+
+### Agent 1 — Resume Agent
+
+Extracts:
+
+* Name
+* Education
+* Skills
+* Experience
+* Projects
+* Certifications
+
+### Agent 2 — Job Agent
+
+Extracts:
+
+* Job title
+* Required skills
+* Preferred skills
+* Experience requirements
+* Education requirements
+* Responsibilities
+
+### Agent 3 — Matching Agent
+
+Calculates candidate-job compatibility.
+
+### Agent 4 — Skill Gap Agent
+
+Identifies:
+
+* Missing skills
+* Weak skills
+* Skill priority
+
+### Agent 5 — Recruiter Agent
+
+Generates:
+
+* Candidate summary
+* Strengths
+* Weaknesses
+* Recommendation
+* Interview consideration
+
+---
+
+# 8. System Architecture
+
+Use this architecture diagram in your documentation:
+
+```text
+                    ┌─────────────────────┐
+                    │    RECRUITER        │
+                    │      USER           │
+                    └──────────┬──────────┘
+                               │
+                               ▼
+                    ┌─────────────────────┐
+                    │    STREAMLIT UI     │
+                    │  Recruiter Dashboard│
+                    └──────────┬──────────┘
+                               │
+                               ▼
+                    ┌─────────────────────┐
+                    │      FASTAPI        │
+                    │     Backend API     │
+                    └──────────┬──────────┘
+                               │
+                               ▼
+                    ┌─────────────────────┐
+                    │   AI ORCHESTRATOR   │
+                    │      LangGraph      │
+                    └──────────┬──────────┘
+                               │
+          ┌────────────────────┼────────────────────┐
+          │                    │                    │
+          ▼                    ▼                    ▼
+   Resume Agent          Job Agent           Matching Agent
+          │                    │                    │
+          └────────────────────┼────────────────────┘
+                               ▼
+                      Skill Gap Agent
+                               │
+                               ▼
+                      Recruiter Agent
+                               │
+                    ┌──────────┴──────────┐
+                    ▼                     ▼
+             Semantic Matching          LLM
+          Sentence Transformers      Reasoning
+                    │                     │
+                    └──────────┬──────────┘
+                               ▼
+                         SQLite Database
+                               │
+                               ▼
+                    ┌─────────────────────┐
+                    │ Ranked Candidates   │
+                    │ Skill Gaps          │
+                    │ Evidence            │
+                    │ Recommendations     │
+                    └─────────────────────┘
+```
+
+---
+
+# 9. Technical Flow
+
+## Step 1 — Upload Data
+
+Recruiter uploads:
+
+```text
+10 Resumes
++
+3 Job Descriptions
+```
+
+Supported formats:
+
+```text
+PDF
+DOCX
+```
+
+---
+
+## Step 2 — Document Extraction
+
+For PDF:
+
+**PyMuPDF**
+
+For DOCX:
+
+**python-docx**
+
+Output:
+
+```text
+Raw Resume Text
+```
+
+---
+
+## Step 3 — Resume Agent
+
+Raw text is passed to the Resume Agent.
+
+Output is converted into structured JSON.
+
+Example:
+
+```json
+{
+  "candidate_id": "C001",
+  "name": "Candidate A",
+  "skills": [
+    "Python",
+    "Linux",
+    "Networking"
+  ],
+  "experience_years": 1.5,
+  "education": "BSc Computer Science",
+  "projects": [
+    "Security Application"
+  ],
+  "certifications": [
+    "CEH"
+  ]
+}
+```
+
+---
+
+# 10. Job Agent
+
+The Job Agent converts the job description into structured requirements.
+
+Example:
+
+```json
+{
+  "job_id": "J001",
+  "title": "Cyber Security Analyst",
+  "required_skills": [
+    "SIEM",
+    "Incident Response",
+    "Linux",
+    "Networking"
+  ],
+  "preferred_skills": [
+    "Python",
+    "Cloud Security",
+    "Splunk"
+  ],
+  "minimum_experience": 1,
+  "education": "Computer Science"
+}
+```
+
+---
+
+# 11. Candidate Matching Algorithm
+
+This is one of the **most important sections** in your documentation.
+
+HireMind AI uses a hybrid matching approach:
+
+```text
+Keyword Matching
+       +
+Semantic Similarity
+       +
+Rule-Based Evaluation
+       ↓
+Final Compatibility Score
+```
+
+### Proposed weighting
+
+| Factor         |   Weight |
+| -------------- | -------: |
+| Skill Match    |      35% |
+| Experience     |      25% |
+| Education      |      15% |
+| Projects       |      15% |
+| Certifications |      10% |
+| **Total**      | **100%** |
+
+### Formula
+
+```text
+Overall Score =
+(Skill × 0.35)
++
+(Experience × 0.25)
++
+(Education × 0.15)
++
+(Projects × 0.15)
++
+(Certification × 0.10)
+```
+
+Example:
+
+```text
+Skill Match          94%
+Experience           88%
+Education            95%
+Projects             92%
+Certification        94%
+
+Overall Match        ≈ 92%
+```
+
+This makes the result **explainable rather than an arbitrary AI-generated number**.
+
+---
+
+# 12. Semantic Matching
+
+A major feature of HireMind AI is semantic matching.
+
+For example:
+
+### Job Description
+
+> Security event monitoring
+
+### Resume
+
+> SOC monitoring and threat detection
+
+A simple keyword system may fail to recognize the relationship.
+
+Semantic embeddings can identify that the concepts are closely related.
+
+```text
+"Security Event Monitoring"
+              ↕
+       Semantic Model
+              ↕
+"SOC Threat Monitoring"
+```
+
+This improves matching when different terminology is used.
+
+---
+
+# 13. Skill Gap Analysis
+
+After calculating the match, the Skill Gap Agent compares candidate skills with job requirements.
+
+Example:
+
+### Candidate
+
+```text
+✓ Python
+✓ Linux
+✓ Networking
+✓ Cybersecurity
+```
+
+### Job Requirements
+
+```text
+✓ Python
+✓ Linux
+✓ Networking
+❌ SIEM
+❌ Splunk
+❌ AWS Security
+```
+
+Output:
+
+```text
+High Priority:
+• SIEM
+• Splunk
+
+Medium Priority:
+• AWS Security
+```
+
+---
+
+# 14. Explainable AI
+
+HireMind AI does not only provide:
+
+> **91% Match**
+
+It explains the score.
+
+Example:
+
+```text
+Candidate: Aman Sharma
+
+Overall Match: 91%
+
+Skill Match:       94%
+Experience:        88%
+Education:         95%
+Projects:          92%
+Certification:     94%
+```
+
+### Evidence
+
+```text
+Python
+✓ Skills section
+✓ Security project
+✓ FastAPI project
+
+Linux
+✓ Skills section
+✓ Security project
+```
+
+This allows recruiters to understand **why** the system recommended the candidate.
+
+---
+
+# 15. Multi-Job Matching
+
+The system can compare candidates across multiple jobs.
+
+Example:
+
+| Candidate   | Cybersecurity | Data Analyst | Developer |
+| ----------- | ------------: | -----------: | --------: |
+| Candidate A |       **91%** |          64% |       78% |
+| Candidate B |           73% |      **94%** |       62% |
+| Candidate C |           68% |          82% |   **96%** |
+| Candidate D |           88% |          71% |       75% |
+
+The system can identify the candidate's strongest role match.
+
+---
+
+# 16. Technology Stack
+
+| Technology                | Purpose                    |
+| ------------------------- | -------------------------- |
+| **Python**                | Core development           |
+| **Streamlit**             | Recruiter dashboard        |
+| **FastAPI**               | Backend APIs               |
+| **LangGraph**             | Multi-agent orchestration  |
+| **LLM API**               | Extraction and reasoning   |
+| **Sentence Transformers** | Semantic similarity        |
+| **PyMuPDF**               | PDF extraction             |
+| **python-docx**           | DOCX extraction            |
+| **Pydantic**              | Structured data validation |
+| **SQLite**                | Database                   |
+| **Plotly**                | Charts and visualizations  |
+| **Git/GitHub**            | Version control            |
+
+---
+
+# 17. Why These Technologies?
+
+### Python
+
+Large ecosystem for NLP, AI and document processing.
+
+### Streamlit
+
+Allows the team to create a functional recruiter dashboard rapidly.
+
+### FastAPI
+
+Provides a lightweight and high-performance backend.
+
+### LangGraph
+
+Allows the five AI agents to operate through a controlled workflow.
+
+### Sentence Transformers
+
+Provides semantic similarity between job requirements and candidate skills.
+
+### SQLite
+
+Simple, lightweight and sufficient for the hackathon's 10-resume/3-job demonstration.
+
+---
+
+# 18. User Interface
+
+The dashboard should provide:
+
+### Dashboard
+
+```text
+Resumes Uploaded          10
+Job Descriptions           3
+AI Agents Active           5
+Matches Analyzed          30
+```
+
+### Navigation
+
+```text
+Dashboard
+Upload Data
+Candidates
+Job Descriptions
+Matching Results
+Compare Candidates
+Reports
+Settings
+```
+
+### Matching Results
+
+```text
+Cyber Security Analyst
+
+🥇 Candidate A     91%     SHORTLIST
+🥈 Candidate B     86%     SHORTLIST
+🥉 Candidate C     79%     REVIEW
+4. Candidate D     73%     REVIEW
+5. Candidate E     68%     REVIEW
+```
+
+---
+
+# 19. Agent Workflow
+
+Document this separately because the problem specifically asks for **multi-agent AI**.
+
+```text
+                 START
+                   │
+                   ▼
+             Resume Agent
+                   │
+                   ▼
+               Job Agent
+                   │
+                   ▼
+            Matching Agent
+                   │
+                   ▼
+            Skill Gap Agent
+                   │
+                   ▼
+            Recruiter Agent
+                   │
+                   ▼
+                 END
+```
+
+### Agent Responsibilities
+
+| Agent           | Responsibility                |
+| --------------- | ----------------------------- |
+| Resume Agent    | Candidate extraction          |
+| Job Agent       | Requirement extraction        |
+| Matching Agent  | Compatibility scoring         |
+| Skill Gap Agent | Missing skill identification  |
+| Recruiter Agent | Human-readable recommendation |
+
+---
+
+# 20. Innovation
+
+This section is **very important for judging**.
+
+### Innovation 1 — Multi-Agent Recruitment
+
+Instead of one AI model performing every task, HireMind AI divides recruitment analysis into specialized agents.
+
+### Innovation 2 — Explainable Matching
+
+Every score is broken into understandable factors.
+
+### Innovation 3 — Semantic Skill Matching
+
+Related terminology can be recognized even when exact keywords differ.
+
+### Innovation 4 — Skill Gap Intelligence
+
+The platform doesn't only determine whether a candidate matches; it identifies what the candidate needs to improve.
+
+### Innovation 5 — Multi-Role Intelligence
+
+One candidate can be evaluated against multiple job descriptions.
+
+### Innovation 6 — Evidence-Based Recommendations
+
+The system can associate matched skills with evidence found in the candidate's resume.
+
+---
+
+# 21. Responsible AI & Fairness
+
+This section can give you a **very strong answer during judging**.
+
+HireMind AI should focus evaluation on **job-relevant qualifications** rather than sensitive personal characteristics.
+
+The scoring system should avoid using attributes such as:
+
+```text
+Gender
+Religion
+Race / ethnicity
+Political affiliation
+Other sensitive personal characteristics
+```
+
+The system should also be designed as a **decision-support tool**, not an unquestionable automated hiring authority.
+
+### Proposed safeguards
+
+* Use only job-relevant attributes.
+* Make scoring explainable.
+* Show evidence for important matches.
+* Allow recruiter review.
+* Avoid automatic rejection solely from an AI-generated judgment.
+* Test scoring consistency across candidates.
+* Clearly distinguish extracted facts from AI-generated recommendations.
+
+---
+
+# 22. Data Privacy
+
+Because resumes can contain personal information, the system should:
+
+* Process only required candidate information.
+* Avoid unnecessary data collection.
+* Restrict access to uploaded resumes.
+* Avoid exposing candidate information unnecessarily.
+* Use synthetic/demo resumes during the hackathon demonstration where possible.
+* Delete temporary uploaded documents when they are no longer required.
+
+---
+
+# 23. Expected Demonstration
+
+The official demonstration can be:
+
+```text
+10 Resumes
+     +
+3 Job Descriptions
+     ↓
+HireMind AI
+     ↓
+30 Candidate-Job Evaluations
+     ↓
+Ranked Candidates
+     ↓
+Skill Gaps
+     ↓
+Explainable Scores
+     ↓
+Recruiter Recommendations
+```
+
+### Example output
+
+```text
+Cyber Security Analyst
+
+1. Aman Sharma        91%    SHORTLIST
+2. Riya Kapoor        86%    SHORTLIST
+3. Vikram Mehta       79%    REVIEW
+4. Pooja Singh        73%    REVIEW
+5. Neha Agarwal       68%    REVIEW
+```
+
+---
+
+# 24. Implementation Plan
+
+### Phase 1 — Core Backend
+
+* Project setup
+* Resume parser
+* Job parser
+* Pydantic schemas
+* Database
+
+### Phase 2 — AI Agents
+
+* Resume Agent
+* Job Agent
+* Matching Agent
+* Skill Gap Agent
+* Recruiter Agent
+* Orchestrator
+
+### Phase 3 — Matching
+
+* Keyword matching
+* Semantic matching
+* Scoring algorithm
+* Candidate ranking
+
+### Phase 4 — Frontend
+
+* Dashboard
+* Upload page
+* Candidate list
+* Job list
+* Matching results
+* Candidate details
+
+### Phase 5 — Testing
+
+* 10 resumes
+* 3 JDs
+* 30 matching combinations
+* Parsing failure tests
+* Score consistency tests
+
+### Phase 6 — Presentation
+
+* Final UI
+* Architecture diagram
+* Demo dataset
+* Final report
+* Presentation
+
+---
+
+# 25. Testing Strategy
+
+We should document at least these tests:
+
+### Test 1 — Resume Parsing
+
+```text
+Input: PDF Resume
+Expected: Candidate information extracted
+```
+
+### Test 2 — Job Parsing
+
+```text
+Input: Job Description
+Expected: Requirements extracted
+```
+
+### Test 3 — Matching
+
+```text
+Input: Candidate + Job
+Expected: Compatibility score
+```
+
+### Test 4 — Skill Gap
+
+```text
+Input: Candidate + Job
+Expected: Missing skills
+```
+
+### Test 5 — Ranking
+
+```text
+Input: 10 Candidates
+Expected: Sorted ranking
+```
+
+### Test 6 — Multiple Jobs
+
+```text
+10 Candidates × 3 Jobs
+Expected: 30 evaluations
+```
+
+---
+
+# 26. Expected Results
+
+The completed system should allow a recruiter to:
+
+✅ Upload multiple resumes
+✅ Upload multiple job descriptions
+✅ Automatically extract information
+✅ Match candidates with jobs
+✅ Rank candidates
+✅ View compatibility scores
+✅ Understand score breakdown
+✅ Identify skill gaps
+✅ Compare candidates
+✅ Generate recruiter recommendations
+✅ Generate reports
+
+---
+
+# 27. Limitations
+
+Be honest here. Judges generally appreciate it.
+
+Current prototype limitations may include:
+
+* Complex graphical resumes may not parse perfectly.
+* Image-only/scanned PDFs may require OCR.
+* Semantic similarity may occasionally identify loosely related skills.
+* LLM output requires validation.
+* The scoring weights are configurable rather than universally optimal.
+* The system is intended as recruiter assistance, not a replacement for human hiring decisions.
+
+---
+
+# 28. Future Scope
+
+Possible future improvements:
+
+### Phase 2
+
+* OCR for scanned resumes
+* Multilingual resumes
+* Advanced skill ontology
+* More job categories
+* Interview question generation
+* Candidate development roadmap
+
+### Phase 3
+
+* Enterprise ATS integration
+* Advanced analytics
+* Recruiter collaboration
+* Candidate feedback
+* Model evaluation and bias auditing
+* Secure cloud deployment
+
+---
+
+# 29. References
+
+For the final document, include the **actual sources your team uses**, not random URLs.
+
+Suggested reference categories:
+
+1. Official documentation for the LLM/API used.
+2. LangGraph documentation.
+3. FastAPI documentation.
+4. Streamlit documentation.
+5. PyMuPDF documentation.
+6. Sentence Transformers documentation.
+7. Pydantic documentation.
+8. Python documentation.
+9. Relevant academic papers on semantic similarity / NLP.
+10. The exact resume/job-description dataset and its license, if you use one.
+
+**Important:** Your problem statement specifically says teams should verify the dataset's **license, version, access conditions, and suitability**. So in the final documentation, don't simply write "Kaggle dataset" or "open ML dataset"; write the **exact dataset name, source, version/date, license, and how you used it**.
+
+---
+
+# 30. External / AI Resources Used
+
+The organizers specifically mention documenting external/AI resources, so include a section like:
+
+| Resource              | Usage                                           |
+| --------------------- | ----------------------------------------------- |
+| LLM API               | Resume/JD extraction and recruiter explanations |
+| LangGraph             | Agent orchestration                             |
+| Sentence Transformers | Semantic matching                               |
+| PyMuPDF               | PDF text extraction                             |
+| python-docx           | DOCX extraction                                 |
+| Streamlit             | UI                                              |
+| FastAPI               | Backend                                         |
+| GitHub                | Source-code collaboration                       |
+
+### AI-assisted development
+
+If your team uses AI coding assistants, document them honestly, for example:
+
+> AI-assisted development tools were used for code ideation, debugging assistance, prompt refinement, documentation drafting, and development support. Final implementation, testing, integration, and validation were performed by the project team.
+
+Don't claim that AI was used for something your team didn't actually do.
+
+---
+
+# 31. Final One-Page Project Summary
+
+Put this near the beginning/end of your documentation:
+
+> ### **HireMind AI**
+>
+> **Multi-Agent Resume Screening & Job Matching Platform**
+>
+> HireMind AI is an AI-powered recruitment assistant that uses five specialized agents to analyze resumes and job descriptions, calculate explainable candidate-job compatibility, identify skill gaps, rank candidates, and generate recruiter-friendly recommendations.
+>
+> **Input:** 10 resumes + 3 job descriptions
+> **Processing:** Resume Agent → Job Agent → Matching Agent → Skill Gap Agent → Recruiter Agent
+> **Output:** Ranked candidates + match scores + skill gaps + evidence + recommendations
+>
+> **Core Technologies:** Python, FastAPI, Streamlit, LangGraph, LLM, Sentence Transformers, PyMuPDF, Pydantic and SQLite.
+>
+> **Key Innovation:** Instead of treating AI as a single resume-scoring tool, HireMind AI uses a coordinated multi-agent workflow with hybrid semantic/rule-based matching and explainable recommendations.
+
+---
+
+# 🏆 What I recommend we do next
+
+Don't just copy this into Word yet. **We should turn it into your actual hackathon documentation**, with:
+
+1. **Professional cover page**
+2. **Table of contents**
+3. **Problem Statement**
+4. **Research/Existing System**
+5. **Proposed System**
+6. **Architecture diagram**
+7. **5-agent workflow diagram**
+8. **DFD / system flow**
+9. **Database design**
+10. **Technology stack**
+11. **Matching algorithm + formula**
+12. **UI screenshots/mockups**
+13. **Innovation**
+14. **Responsible AI + privacy**
+15. **Implementation**
+16. **Testing**
+17. **Expected results**
+18. **Future scope**
+19. **References**
+20. **External/AI resources declaration**
+
+**Most importantly:** we should make the documentation describe exactly what your team will actually implement, so you don't get caught by judges asking, *“Show me how this feature works.”*
+
+For your HireMind documentation
+
+* Create the architecture diagrams
+* Add a judging-focused section
+* Turn this into a formal report
