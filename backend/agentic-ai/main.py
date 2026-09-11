@@ -74,6 +74,51 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+from fastapi.responses import JSONResponse
+from fastapi.exceptions import RequestValidationError
+from datetime import datetime, timezone
+
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request: Request, exc: HTTPException):
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={
+            "status": "error",
+            "error_code": f"HTTP_{exc.status_code}",
+            "detail": exc.detail,
+            "timestamp": datetime.now(timezone.utc).isoformat()
+        }
+    )
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    return JSONResponse(
+        status_code=422,
+        content={
+            "status": "error",
+            "error_code": "VALIDATION_ERROR",
+            "detail": "Invalid request payload or query parameters.",
+            "errors": [str(e) for e in exc.errors()],
+            "timestamp": datetime.now(timezone.utc).isoformat()
+        }
+    )
+
+
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request: Request, exc: Exception):
+    logger.error(f"Unhandled Server Error: {exc}", exc_info=True)
+    return JSONResponse(
+        status_code=500,
+        content={
+            "status": "error",
+            "error_code": "INTERNAL_SERVER_ERROR",
+            "detail": f"Internal server error: {str(exc)}",
+            "timestamp": datetime.now(timezone.utc).isoformat()
+        }
+    )
+
+
 
 @app.middleware("http")
 async def telemetry_middleware(request: Request, call_next):
@@ -168,10 +213,23 @@ async def upload_resumes(
     if not files:
         raise HTTPException(status_code=400, detail="No files uploaded.")
 
+    allowed_exts = {".pdf", ".docx", ".txt"}
     file_tuples = []
     for file in files:
+        filename = file.filename or "uploaded_resume.txt"
+        ext = os.path.splitext(filename)[1].lower()
+        if ext not in allowed_exts:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Unsupported file type '{ext}' for file '{filename}'. Only PDF, DOCX, and TXT files are allowed."
+            )
         content = await file.read()
-        file_tuples.append((file.filename, content))
+        if len(content) > 10 * 1024 * 1024:
+            raise HTTPException(
+                status_code=400,
+                detail=f"File '{filename}' exceeds maximum allowed size limit of 10 MB."
+            )
+        file_tuples.append((filename, content))
 
     results = process_batch_upload(db=db, files=file_tuples)
     return results
@@ -271,14 +329,28 @@ def run_candidate_job_match(req: RunMatchRequest, db: Session = Depends(get_db))
 
 @app.get("/api/v1/ranking")
 @app.get("/api/v1/ranking/{job_id}")
-def get_candidate_rankings_for_job(job_id: str, db: Session = Depends(get_db)):
+def get_candidate_rankings_for_job(job_id: Optional[str] = None, db: Session = Depends(get_db)):
     job_repo = JobRepository(db)
-    job = job_repo.get_job(job_id)
+    job = None
+    if job_id:
+        job = job_repo.get_job(job_id)
+    else:
+        all_jobs = job_repo.list_jobs()
+        if all_jobs:
+            job = all_jobs[0]
+            job_id = job.job_id
+
     if not job:
-        raise HTTPException(status_code=404, detail=f"Job '{job_id}' not found.")
+        return {
+            "job_id": job_id or "NONE",
+            "job_title": "No Job Selected",
+            "total_candidates": 0,
+            "total_ranked": 0,
+            "rankings": []
+        }
 
     match_repo = MatchRepository(db)
-    matches = match_repo.get_rankings_for_job(job_id)
+    matches = match_repo.get_rankings_for_job(job.job_id)
 
     rankings = []
     for idx, m in enumerate(matches, start=1):
