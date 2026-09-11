@@ -16,9 +16,9 @@ class SkillMatchDetail(BaseModel):
 
 
 class RequirementAssessment(BaseModel):
-    requirement_id: str
-    description: str
-    category: str  # "competency", "qualification", "certification", "experience_duration", "responsibility"
+    requirement_id: Optional[str] = None
+    description: str = ""
+    category: str = "competency"  # "competency", "qualification", "certification", "experience_duration", "responsibility"
     mandatory: bool = False
     weight: float = 10.0
     status: str = "unknown"  # "satisfied" (1.0), "partially_supported" (0.5), "contradicted" (0.0), "unknown" (0.0)
@@ -26,6 +26,23 @@ class RequirementAssessment(BaseModel):
     evidence_text: Optional[str] = None
     evidence_page: Optional[int] = None
     score_contribution: float = 0.0
+
+
+class EvidenceItem(BaseModel):
+    requirement_id: Optional[str] = None
+    candidate_skill: Optional[str] = None
+    matched_text: Optional[str] = None
+    evidence_passage: Optional[str] = None
+    page_number: Optional[int] = None
+    confidence: float = 1.0
+
+
+class Gap(BaseModel):
+    skill: str
+    gap_type: str = "optional"  # "critical", "moderate", "optional", "transferable"
+    impact: Optional[str] = "Low"
+    severity: Optional[str] = "minor"
+    mitigations: List[str] = Field(default_factory=list)
 
 
 class TransferableGap(BaseModel):
@@ -81,6 +98,8 @@ class MatchResult(BaseModel):
     uncertainty_flags: List[str] = Field(default_factory=list)
     failed_requirements: List[FailedRequirement] = Field(default_factory=list)
     requirement_assessments: List[RequirementAssessment] = Field(default_factory=list)
+    evidence_items: List[EvidenceItem] = Field(default_factory=list)
+    gaps: List[Gap] = Field(default_factory=list)
     features: FeatureBreakdown = Field(default_factory=FeatureBreakdown)
     raw_score_breakdown: ScoreBreakdown = Field(default_factory=ScoreBreakdown)
     score_breakdown: ScoreBreakdown = Field(default_factory=ScoreBreakdown)
