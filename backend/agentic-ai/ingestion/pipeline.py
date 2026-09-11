@@ -69,8 +69,12 @@ def extract_candidate_profile_from_text(raw_text: str, filename: str, candidate_
         "Patient Care", "Clinical Nursing", "ICU", "Triage", "Phlebotomy", "EHR", "IV Administration"
     ]
     
+    from nlp.evidence_retriever import contains_negation
+
     for kw in known_skill_keywords:
         if re.search(r'\b' + re.escape(kw) + r'\b', raw_text, re.IGNORECASE):
+            if contains_negation(raw_text, kw):
+                continue
             skills_found.append(CandidateSkill(raw_skill=kw, normalized_skill=kw.lower(), confidence=1.0))
 
     # Experience entries extraction (strictly factual)

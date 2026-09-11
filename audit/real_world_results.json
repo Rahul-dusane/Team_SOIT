@@ -1,0 +1,77 @@
+{
+  "mode": "actual TestClient and disposable SQLite; offline model fallback; no live LLM/PostgreSQL",
+  "checks": [
+    {
+      "name": "Repeated-word chunk offsets reproduce source",
+      "actual": false,
+      "expected": true,
+      "passed": false
+    },
+    {
+      "name": "TXT upload succeeds",
+      "actual": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "name": "No education invented",
+      "actual": [],
+      "expected": [],
+      "passed": true
+    },
+    {
+      "name": "Duplicate upload returns same candidate",
+      "actual": "CAND_6F60D0BA84",
+      "expected": "CAND_6F60D0BA84",
+      "passed": true
+    },
+    {
+      "name": "Anonymous candidate read blocked",
+      "actual": false,
+      "expected": true,
+      "passed": false
+    },
+    {
+      "name": "Job creation succeeds",
+      "actual": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "name": "Match succeeds",
+      "actual": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "name": "Saved match retrievable",
+      "actual": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "name": "Match survives DB reconnect",
+      "actual": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "name": "Failed save does not return success",
+      "actual": true,
+      "expected": true,
+      "passed": true
+    },
+    {
+      "name": "Anonymous deletion blocked",
+      "actual": false,
+      "expected": true,
+      "passed": false
+    },
+    {
+      "name": "Invalid upload reported failed",
+      "actual": 1,
+      "expected": 1,
+      "passed": true
+    }
+  ]
+}

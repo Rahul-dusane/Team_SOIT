@@ -165,12 +165,33 @@ def recruiter_node(state: RecruitmentState) -> Dict[str, Any]:
     }
 
 
+from app.llm.llm_factory import get_llm_metadata
+
+
+def conditional_review_node(state: RecruitmentState) -> Dict[str, Any]:
+    """Node executed when extraction errors, prompt injections, or unverified mandatory evidence require human recruiter review."""
+    logger.warning("Executing Node: conditional_review_node - routing pipeline to REVIEW_REQUIRED")
+    return {
+        "current_step": "review_required",
+        "workflow_status": "REVIEW_REQUIRED"
+    }
+
+
+def route_resume_extraction(state: RecruitmentState) -> str:
+    """Evaluates if candidate extractions succeeded or require review routing."""
+    profiles = state.get("candidate_profiles", {})
+    errors = state.get("errors", [])
+    if errors or not profiles:
+        return "conditional_review"
+    return "job_agent"
+
+
 # ---------------------------------------------------------
 # Graph Construction
 # ---------------------------------------------------------
 
 def build_recruitment_graph():
-    """Builds and compiles the full LangGraph recruitment workflow."""
+    """Builds and compiles the full LangGraph recruitment workflow with conditional review routing."""
     builder = StateGraph(RecruitmentState)
 
     # Add Nodes
@@ -180,10 +201,18 @@ def build_recruitment_graph():
     builder.add_node("skill_gap", skill_gap_node)
     builder.add_node("evidence", evidence_node)
     builder.add_node("recruiter", recruiter_node)
+    builder.add_node("conditional_review", conditional_review_node)
 
-    # Ingestion flow
+    # Ingestion flow with conditional review routing
     builder.add_edge(START, "resume_agent")
-    builder.add_edge("resume_agent", "job_agent")
+    builder.add_conditional_edges(
+        "resume_agent",
+        route_resume_extraction,
+        {
+            "job_agent": "job_agent",
+            "conditional_review": "conditional_review"
+        }
+    )
     builder.add_edge("job_agent", "matching")
 
     # Sequential flow for explanation, evidence extraction, and recruiter synthesis
@@ -191,12 +220,13 @@ def build_recruitment_graph():
     builder.add_edge("skill_gap", "evidence")
     builder.add_edge("evidence", "recruiter")
     builder.add_edge("recruiter", END)
+    builder.add_edge("conditional_review", END)
 
     return builder.compile()
 
 
 def run_pipeline(resume_texts: Dict[str, str], job_texts: Dict[str, str]) -> Dict[str, Any]:
-    """Convenience entrypoint to execute the graph with raw inputs."""
+    """Convenience entrypoint to execute the graph with raw inputs and telemetry metadata."""
     graph = build_recruitment_graph()
     
     initial_state: RecruitmentState = {
@@ -215,5 +245,7 @@ def run_pipeline(resume_texts: Dict[str, str], job_texts: Dict[str, str]) -> Dic
         "errors": []
     }
 
-    return graph.invoke(initial_state)
+    output = graph.invoke(initial_state)
+    output["telemetry"] = get_llm_metadata()
+    return output
 

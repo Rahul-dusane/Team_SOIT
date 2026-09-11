@@ -1,7 +1,7 @@
 """Centralized LLM Factory supporting multiple providers with fallback capability."""
 
 import os
-from typing import Any, Optional, Type
+from typing import Any, Optional, Type, Dict
 from dotenv import load_dotenv
 from pydantic import BaseModel
 from langchain_core.runnables import Runnable
@@ -188,12 +188,43 @@ class MockLLM:
         return MockStructuredLLM(schema)
 
 
+def is_strict_prod_mode() -> bool:
+    """Returns True if production mode is active and mock fallbacks are prohibited."""
+    strict_flag = os.getenv("STRICT_PROD_MODE", "false").lower() in ("true", "1", "yes")
+    allow_mock = os.getenv("ALLOW_MOCK_FALLBACK", "true").lower() in ("true", "1", "yes")
+    return strict_flag or not allow_mock
+
+
+def get_llm_metadata() -> Dict[str, Any]:
+    """Returns audit metadata (provider, model, prompt_version, is_fallback_used) without exposing keys."""
+    provider = os.getenv("LLM_PROVIDER", "openai").lower()
+    model = os.getenv("GEMINI_MODEL", "gemini-2.0-flash") if provider == "gemini" else os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+    is_fallback = False
+    
+    openai_key = os.getenv("OPENAI_API_KEY")
+    gemini_key = os.getenv("GEMINI_API_KEY")
+    
+    if provider == "gemini" and (not gemini_key or gemini_key.startswith("your_")):
+        is_fallback = True
+    elif provider == "openai" and (not openai_key or openai_key.startswith("your_")):
+        is_fallback = True
+
+    return {
+        "provider": provider,
+        "model": model,
+        "prompt_version": "v1.0",
+        "is_fallback_used": is_fallback
+    }
+
+
 def get_llm(temperature: float = 0.0, force_mock: bool = False):
     """
     Returns an initialized LLM with structured output support.
-    Automatically falls back to MockLLM if no API key is detected.
+    Fails fast in production mode if real LLM provider is unavailable.
     """
     if force_mock:
+        if is_strict_prod_mode():
+            raise RuntimeError("Production Mode Violation: Mock LLM requested but force_mock is prohibited in STRICT_PROD_MODE.")
         return MockLLM()
 
     provider = os.getenv("LLM_PROVIDER", "openai").lower()
@@ -202,25 +233,33 @@ def get_llm(temperature: float = 0.0, force_mock: bool = False):
 
     if provider == "openai":
         if not openai_key or openai_key.startswith("your_"):
-            # Graceful fallback so program runs out-of-the-box
+            if is_strict_prod_mode():
+                raise RuntimeError("Production Mode Violation: OPENAI_API_KEY is missing or invalid and ALLOW_MOCK_FALLBACK=false.")
             return MockLLM()
         try:
             from langchain_openai import ChatOpenAI
             model = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
             return ChatOpenAI(model=model, temperature=temperature, api_key=openai_key)
-        except Exception:
+        except Exception as e:
+            if is_strict_prod_mode():
+                raise RuntimeError(f"Production Mode Violation: OpenAI instantiation failed: {e}")
             return MockLLM()
 
     elif provider == "gemini":
         if not gemini_key or gemini_key.startswith("your_"):
+            if is_strict_prod_mode():
+                raise RuntimeError("Production Mode Violation: GEMINI_API_KEY is missing or invalid and ALLOW_MOCK_FALLBACK=false.")
             return MockLLM()
         try:
             from langchain_google_genai import ChatGoogleGenerativeAI
-            model = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
+            model = os.getenv("GEMINI_MODEL", "gemini-2.0-flash")
             return ChatGoogleGenerativeAI(model=model, temperature=temperature, google_api_key=gemini_key)
-        except Exception:
+        except Exception as e:
+            if is_strict_prod_mode():
+                raise RuntimeError(f"Production Mode Violation: Gemini instantiation failed: {e}")
             return MockLLM()
 
-    # Default fallback
+    if is_strict_prod_mode():
+        raise RuntimeError(f"Production Mode Violation: Unsupported LLM_PROVIDER '{provider}'.")
     return MockLLM()
 
