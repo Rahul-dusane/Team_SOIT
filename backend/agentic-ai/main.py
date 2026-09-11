@@ -4,7 +4,14 @@ FastAPI Service Application Entry Point for HireLens.
 Exposes production REST API endpoints for resume upload, candidate management, job definition, matching engine execution, candidate ranking, detailed match breakdowns, stats, and Member 1 Agentic AI workflows.
 """
 
+import sys
 import os
+
+# Automatically add backend/agentic-ai directory to sys.path so modules can be imported directly
+backend_dir = os.path.dirname(os.path.abspath(__file__))
+if backend_dir not in sys.path:
+    sys.path.insert(0, backend_dir)
+
 from typing import List, Dict, Any, Optional
 from fastapi import FastAPI, HTTPException, UploadFile, File, Depends, Query
 from fastapi.middleware.cors import CORSMiddleware
