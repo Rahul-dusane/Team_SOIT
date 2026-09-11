@@ -34,7 +34,6 @@ def match_candidate_to_job(candidate: CandidateProfile, job: JobProfile, cfg: Ma
 
     req_list = job.requirements
     if not req_list:
-        # Fallback: Convert must_have_skills & preferred_skills into JobRequirement objects
         req_list = [JobRequirement(requirement_id=f"R_{idx}", description=f"Demonstrate proficiency in {s}", skill=s, importance="must_have", mandatory=True, weight=20.0) for idx, s in enumerate(job.must_have_skills, 1)]
         req_list += [JobRequirement(requirement_id=f"R_P_{idx}", description=f"Experience with {s}", skill=s, importance="preferred", weight=10.0) for idx, s in enumerate(job.preferred_skills, 1)]
 
@@ -42,13 +41,20 @@ def match_candidate_to_job(candidate: CandidateProfile, job: JobProfile, cfg: Ma
 
     for idx, req in enumerate(req_list, start=1):
         req_id = req.requirement_id or f"REQ_{idx:02d}"
-        status, ev_text, ev_page, conf = retrieve_candidate_evidence(req.description, candidate, req.skill)
+        status, ev_text, ev_page, conf = retrieve_candidate_evidence(
+            requirement_text=req.description,
+            candidate=candidate,
+            req_skill=req.skill,
+            min_duration_months=req.minimum_duration_months
+        )
         
         status_mult = 1.0 if status == "satisfied" else (0.5 if status == "partially_supported" else 0.0)
         contrib = status_mult * req.weight
         
-        if status != "unknown":
+        if status in ["satisfied", "partially_supported"]:
             supported_count += 1
+        elif status == "contradicted":
+            uncertainty_flags.append(f"CONTRADICTION DETECTED: Requirement '{req.description}' contradicted by candidate evidence.")
         else:
             if req.importance == "must_have" or req.mandatory:
                 uncertainty_flags.append(f"Missing evidence for mandatory requirement: '{req.description}'")

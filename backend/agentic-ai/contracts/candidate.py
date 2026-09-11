@@ -1,12 +1,19 @@
 """
 candidate.py
 Domain-Independent Validated Pydantic contracts for Candidate Profile and sub-components.
-Supports flexible field aliases (e.g. work_history -> experiences, professional_license -> certifications)
-to prevent silent data loss across IT, Accounting, Healthcare, Engineering, and other professions.
+Supports flexible field aliases and captures unsupported extra fields into unmapped_fields for auditability.
 """
 
 from typing import List, Optional, Any, Dict
-from pydantic import BaseModel, Field, field_validator, AliasChoices
+from pydantic import BaseModel, Field, field_validator, model_validator, AliasChoices
+
+KNOWN_CANDIDATE_FIELDS = {
+    "candidate_id", "name", "email", "phone", "total_experience_months",
+    "skills", "experiences", "work_history", "employment_history",
+    "education", "qualifications", "academic_background",
+    "projects", "domains", "certifications", "licenses", "credentials",
+    "unmapped_fields"
+}
 
 
 class CandidateSkill(BaseModel):
@@ -62,8 +69,36 @@ class CandidateProfile(BaseModel):
     education: List[CandidateEducation] = Field(default_factory=list, validation_alias=AliasChoices("education", "qualifications", "academic_background"))
     projects: List[CandidateProject] = Field(default_factory=list)
     domains: List[str] = Field(default_factory=list)
-    certifications: List[str] = Field(default_factory=list, validation_alias=AliasChoices("certifications", "licenses", "professional_license", "credentials"))
+    certifications: List[str] = Field(default_factory=list, validation_alias=AliasChoices("certifications", "licenses", "credentials"))
     unmapped_fields: Dict[str, Any] = Field(default_factory=dict, description="Preserves unsupported fields for auditability")
+
+    @field_validator("certifications", mode="before")
+    @classmethod
+    def validate_certifications(cls, v: Any) -> List[str]:
+        if v is None:
+            return []
+        if isinstance(v, str):
+            return [v]
+        if isinstance(v, list):
+            return [str(x) for x in v if x is not None]
+        return []
+
+    @model_validator(mode="before")
+    @classmethod
+    def capture_unmapped_fields(cls, data: Any) -> Any:
+        if isinstance(data, dict):
+            extra = {}
+            for k, v in data.items():
+                if k not in KNOWN_CANDIDATE_FIELDS:
+                    extra[k] = v
+            if extra:
+                existing_unmapped = data.get("unmapped_fields", {})
+                if isinstance(existing_unmapped, dict):
+                    existing_unmapped.update(extra)
+                    data["unmapped_fields"] = existing_unmapped
+                else:
+                    data["unmapped_fields"] = extra
+        return data
 
     @field_validator("total_experience_months", mode="before")
     @classmethod

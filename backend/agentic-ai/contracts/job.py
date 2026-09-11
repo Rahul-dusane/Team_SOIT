@@ -41,6 +41,8 @@ class JobRequirement(BaseModel):
                 self.description = f"Demonstrate proficiency in {self.skill}"
             else:
                 self.description = "General requirement"
+        if not self.skill and self.description:
+            self.skill = self.description
         return self
 
 

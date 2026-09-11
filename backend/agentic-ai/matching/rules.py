@@ -61,6 +61,14 @@ def classify_skill_match(required_skill: str, candidate_skills: List[CandidateSk
        - sim < 0.65 -> MISSING (0.0 multiplier)
     5. Missing (MISSING) -> 0.0 multiplier
     """
+    if not required_skill:
+        return SkillMatchDetail(
+            required_skill=required_skill or "Unknown Requirement",
+            candidate_skill=None,
+            match_type="missing",
+            similarity=0.0,
+            score=0.0
+        )
     norm_req = normalize_skill(required_skill)
     req_canonical = norm_req["canonical"].lower()
 
@@ -188,10 +196,12 @@ def check_mandatory_requirements(candidate: CandidateProfile, job: JobProfile, c
             message=f"Candidate experience ({candidate.total_experience_months} mos) is below mandatory requirement ({job.min_experience_months} mos)."
         ))
 
-    must_have_set = set(job.must_have_skills)
+    must_have_set = {s for s in job.must_have_skills if s}
     for req in job.requirements:
         if req.importance == "must_have":
-            must_have_set.add(req.skill)
+            s = req.skill or req.description
+            if s:
+                must_have_set.add(s)
 
     # 2. Must-Have Skills Constraint (ONLY 'exact' or 'equivalent' satisfies mandatory check)
     for req_skill in must_have_set:

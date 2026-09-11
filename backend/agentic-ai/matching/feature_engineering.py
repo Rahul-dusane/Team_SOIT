@@ -1,9 +1,9 @@
 """
 feature_engineering.py
-Generates 8 core numerical features for a candidate-job pair, integrating individual requirement weights and role normalization.
+Generates 8 core numerical features for a candidate-job pair, integrating individual requirement weights and role normalization safely.
 """
 
-from typing import Dict, Any, Tuple, List
+from typing import Dict, Any, Tuple, List, Union
 from config.matching_config import DEFAULT_MATCHING_CONFIG, MatchingConfig
 from contracts.candidate import CandidateProfile
 from contracts.job import JobProfile, JobRequirement
@@ -14,34 +14,31 @@ from nlp.similarity import semantic_similarity
 
 
 def build_features(candidate: CandidateProfile, job: JobProfile, cfg: MatchingConfig = DEFAULT_MATCHING_CONFIG) -> Tuple[FeatureBreakdown, List[SkillMatchDetail]]:
-    """
-    Computes candidate-job feature matrix.
-    Incorporates individual requirement weights from job.requirements alongside must_have_skills & preferred_skills.
-    """
     must_have_reqs: List[Union[str, JobRequirement]] = []
     preferred_reqs: List[Union[str, JobRequirement]] = []
 
-    # 1. Process structured job.requirements if present
     seen_must_have = set()
     seen_preferred = set()
 
     for req in job.requirements:
+        skill_key = req.skill.lower() if req.skill else (req.description.lower() if req.description else "")
+        if not skill_key:
+            continue
+
         if req.importance == "must_have":
             must_have_reqs.append(req)
-            seen_must_have.add(req.skill.lower())
+            seen_must_have.add(skill_key)
         elif req.importance in ["preferred", "nice_to_have"]:
             preferred_reqs.append(req)
-            seen_preferred.add(req.skill.lower())
+            seen_preferred.add(skill_key)
 
-    # Add legacy separate must_have_skills if not already in requirements
     for s in job.must_have_skills:
-        if s.lower() not in seen_must_have:
+        if s and s.lower() not in seen_must_have:
             must_have_reqs.append(s)
             seen_must_have.add(s.lower())
 
-    # Add legacy separate preferred_skills if not already in requirements
     for s in job.preferred_skills:
-        if s.lower() not in seen_preferred:
+        if s and s.lower() not in seen_preferred:
             preferred_reqs.append(s)
             seen_preferred.add(s.lower())
 
