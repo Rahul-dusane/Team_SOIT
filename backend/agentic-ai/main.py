@@ -7,6 +7,13 @@ Exposes production REST API endpoints for resume upload, candidate management, j
 import sys
 import os
 
+# Prevent OpenBLAS memory allocation failures on Windows multi-threaded reloaders
+os.environ["OPENBLAS_NUM_THREADS"] = "1"
+os.environ["OMP_NUM_THREADS"] = "1"
+os.environ["MKL_NUM_THREADS"] = "1"
+os.environ["VECLIB_MAXIMUM_THREADS"] = "1"
+os.environ["NUMEXPR_NUM_THREADS"] = "1"
+
 # Automatically add backend/agentic-ai directory to sys.path so modules can be imported directly
 backend_dir = os.path.dirname(os.path.abspath(__file__))
 if backend_dir not in sys.path:
