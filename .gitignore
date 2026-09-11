@@ -1,6 +1,10 @@
+<<<<<<< HEAD
 __pycache__/
 *.py[cod]
 *$py.class
 .pytest_cache/
 .env
 *.log
+=======
+node_modules
+>>>>>>> ce7808e163f0ed9ef3ea4d0312cef982ba957df5
