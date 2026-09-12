@@ -5,11 +5,11 @@ Matching rules, strict 5-tier classification hierarchy, mandatory checks, and we
 
 import os
 import csv
-from typing import List, Dict, Any, Tuple, Union
+from typing import List, Dict, Any, Tuple, Union, Optional
 from config.matching_config import DEFAULT_MATCHING_CONFIG, MatchingConfig
 from contracts.candidate import CandidateProfile, CandidateSkill
 from contracts.job import JobProfile, JobRequirement
-from contracts.match import FailedRequirement, SkillMatchDetail
+from contracts.match import FailedRequirement, SkillMatchDetail, RequirementAssessment
 from nlp.skill_normalizer import normalize_skill
 from nlp.skill_relationships import get_skill_relationship
 from nlp.similarity import semantic_similarity
@@ -184,26 +184,38 @@ def calculate_experience_fit(candidate_months: int, required_months: int) -> flo
     return round(min(ratio, 1.0), 3)
 
 
-def check_mandatory_requirements(candidate: CandidateProfile, job: JobProfile, cfg: MatchingConfig = DEFAULT_MATCHING_CONFIG) -> Tuple[bool, List[FailedRequirement]]:
+def check_mandatory_requirements(
+    candidate: CandidateProfile,
+    job: JobProfile,
+    cfg: MatchingConfig = DEFAULT_MATCHING_CONFIG,
+    assessments: Optional[List[RequirementAssessment]] = None
+) -> Tuple[bool, List[FailedRequirement]]:
     failed = []
 
-    # 1. Experience Constraint
-    if job.min_experience_months > 0 and candidate.total_experience_months < job.min_experience_months:
-        failed.append(FailedRequirement(
-            type="experience",
-            required=job.min_experience_months,
-            candidate=candidate.total_experience_months,
-            message=f"Candidate experience ({candidate.total_experience_months} mos) is below mandatory requirement ({job.min_experience_months} mos)."
-        ))
+    # 1. Check against evidence-backed requirement assessments if provided
+    if assessments:
+        for a in assessments:
+            if a.mandatory and a.status not in ["satisfied", "partially_supported"]:
+                failed.append(FailedRequirement(
+                    type="must_have_skill",
+                    required=a.description or a.requirement_id,
+                    candidate=a.status,
+                    message=f"Candidate failed mandatory requirement '{a.description}' (status: '{a.status}')."
+                ))
+        passed = len(failed) == 0
+        return passed, failed
 
-    must_have_set = {s for s in job.must_have_skills if s}
+    # 2. Standalone fallback check
+    must_have_set = set()
+    for s in job.must_have_skills:
+        if s and len(s) < 40 and not any(w in s.lower() for w in ["experience", "years", "building", "proficient"]):
+            must_have_set.add(s)
     for req in job.requirements:
-        if req.importance == "must_have":
-            s = req.skill or req.description
-            if s:
+        if (req.importance == "must_have" or req.mandatory) and req.skill:
+            s = req.skill
+            if s and len(s) < 40 and not any(w in s.lower() for w in ["experience", "years", "building", "proficient"]):
                 must_have_set.add(s)
 
-    # 2. Must-Have Skills Constraint (ONLY 'exact' or 'equivalent' satisfies mandatory check)
     for req_skill in must_have_set:
         match_detail = classify_skill_match(req_skill, candidate.skills, cfg)
         if match_detail.match_type not in ["exact", "equivalent"]:
@@ -213,30 +225,6 @@ def check_mandatory_requirements(candidate: CandidateProfile, job: JobProfile, c
                 candidate=match_detail.candidate_skill,
                 message=f"Candidate failed mandatory must-have skill '{req_skill}' (match status: '{match_detail.match_type}')."
             ))
-
-    # 3. Mandatory Education Level Constraint
-    if job.education_requirements:
-        required_edu_level = max([get_degree_level(e) for e in job.education_requirements], default=0)
-        cand_edu_level = max([get_degree_level(e.degree) for e in candidate.education], default=0) if candidate.education else 0
-        if cand_edu_level < required_edu_level:
-            failed.append(FailedRequirement(
-                type="education",
-                required=job.education_requirements,
-                candidate=[e.degree for e in candidate.education] if candidate.education else None,
-                message=f"Candidate education level ({cand_edu_level}) is below required level ({required_edu_level})."
-            ))
-
-    # 4. Mandatory Certifications Constraint
-    if job.certifications:
-        cand_certs = set([c.lower() for c in candidate.certifications])
-        for req_cert in job.certifications:
-            if req_cert.lower() not in cand_certs:
-                failed.append(FailedRequirement(
-                    type="certification",
-                    required=req_cert,
-                    candidate=candidate.certifications,
-                    message=f"Candidate is missing mandatory certification: '{req_cert}'."
-                ))
 
     passed = len(failed) == 0
     return passed, failed

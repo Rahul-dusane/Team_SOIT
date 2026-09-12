@@ -76,7 +76,7 @@ def match_candidate_to_job(candidate: CandidateProfile, job: JobProfile, cfg: Ma
     evidence_coverage = round(supported_count / float(len(req_list)), 2) if req_list else 1.0
 
     # 3. Mandatory Constraint Check
-    mandatory_pass, failed_reqs = check_mandatory_requirements(sanitized_candidate, job, cfg)
+    mandatory_pass, failed_reqs = check_mandatory_requirements(sanitized_candidate, job, cfg, requirement_assessments)
 
     # 4. Feature Extraction & Raw Score Calculation
     features, skill_matches = build_features(sanitized_candidate, job, cfg)
