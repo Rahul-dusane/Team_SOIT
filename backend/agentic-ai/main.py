@@ -140,9 +140,11 @@ api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
 
 
 def verify_api_key(api_key: Optional[str] = Security(api_key_header)):
-    """Production Auth Dependency: verifies X-API-Key header when configured in production."""
+    """Production Auth Dependency: verifies X-API-Key header when REQUIRE_AUTH=true and API_KEY is configured."""
     expected_key = os.getenv("API_KEY")
-    if not expected_key or os.getenv("TESTING") == "true":
+    require_auth = os.getenv("REQUIRE_AUTH", "false").lower() in ("true", "1")
+    
+    if not expected_key or not require_auth or os.getenv("TESTING") == "true":
         return True
     if api_key and api_key == expected_key:
         return True
