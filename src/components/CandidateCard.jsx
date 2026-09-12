@@ -33,7 +33,7 @@ export default function CandidateCard({ candidate }) {
           </div>
           <div>
             <h3 className="font-bold">{candidate.name || 'Candidate'}</h3>
-            <p className="mt-0.5 text-xs text-muted">{candidate.role || 'Software Engineer'}</p>
+            <p className="mt-0.5 text-xs text-muted">{candidate.role || 'Role not provided'}</p>
           </div>
         </div>
         <MatchScore score={candidate.score} />
@@ -41,7 +41,7 @@ export default function CandidateCard({ candidate }) {
 
       <div className="my-5 grid grid-cols-2 gap-3 text-xs text-muted">
         <span className="flex items-center gap-2">
-          <Briefcase size={14} />{candidate.experience || '0 yrs'} experience
+          <Briefcase size={14} />{candidate.experience || 'Not provided'} experience
         </span>
         <span className="flex items-center gap-2 truncate">
           <GraduationCap size={14} className="shrink-0" />{eduDisplay}

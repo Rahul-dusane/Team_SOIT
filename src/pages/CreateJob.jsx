@@ -4,18 +4,13 @@ import { Link, useNavigate } from 'react-router-dom'
 import ErrorBanner from '../components/ErrorBanner'
 import { createJob } from '../services/api'
 
-const initialRequirements = [
-  { skill: 'Python', type: 'Must Have', weight: 10 },
-  { skill: 'FastAPI', type: 'Preferred', weight: 8 },
-  { skill: 'AWS', type: 'Preferred', weight: 6 }
-]
-
 export default function CreateJob() {
   const navigate = useNavigate()
-  const [title, setTitle] = useState('Senior Backend Engineer')
-  const [department, setDepartment] = useState('Engineering')
-  const [description, setDescription] = useState('We are looking for a Senior Backend Engineer to design reliable APIs and services that power our next generation of products. You will own services from architecture through production and work closely with product and data teams.')
-  const [requirements, setRequirements] = useState(initialRequirements)
+  const [title, setTitle] = useState('')
+  const [department, setDepartment] = useState('')
+  const [description, setDescription] = useState('')
+  const [experienceMonths, setExperienceMonths] = useState(0)
+  const [requirements, setRequirements] = useState([])
   const [newSkillInput, setNewSkillInput] = useState('')
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
@@ -51,6 +46,10 @@ export default function CreateJob() {
       return
     }
 
+    if (requirements.some(r => r.weight === '' || !Number.isFinite(Number(r.weight)) || Number(r.weight) < 0)) {
+      setErrorMsg('Requirement weights must be non-negative numbers.')
+      return
+    }
     const mustHaveSkills = requirements
       .filter(r => r.type === 'Must Have' || r.type === 'must_have')
       .map(r => r.skill)
@@ -64,18 +63,19 @@ export default function CreateJob() {
       skill: r.skill,
       importance: r.type === 'Must Have' ? 'must_have' : 'preferred',
       mandatory: r.type === 'Must Have',
-      weight: Number(r.weight) || 10
+      weight: Number(r.weight)
     }))
 
-    const jobId = `J_${Date.now().toString().slice(-6)}`
+    const jobId = `J_${crypto.randomUUID()}`
     const payload = {
       job_id: jobId,
       title: title.trim(),
+      description: description.trim(),
       must_have_skills: mustHaveSkills,
       preferred_skills: preferredSkills,
       requirements: reqList,
-      min_experience_months: 36,
-      domain: [department]
+      min_experience_months: Number(experienceMonths),
+      domain: department.trim() ? [department.trim()] : []
     }
 
     setSaving(true)
@@ -101,7 +101,7 @@ export default function CreateJob() {
       <div className="mb-8">
         <p className="eyebrow mb-2">Job builder</p>
         <h1 className="text-3xl font-extrabold tracking-tight">Create a new job</h1>
-        <p className="mt-2 text-sm text-muted">Describe the role and let HireLens extract what matters.</p>
+        <p className="mt-2 text-sm text-muted">Describe the role and enter the requirements used for matching.</p>
       </div>
 
       {errorMsg && (
@@ -124,15 +124,7 @@ export default function CreateJob() {
 
             <label className="block">
               <span className="mb-2 block text-xs font-bold">Department</span>
-              <select
-                value={department}
-                onChange={e => setDepartment(e.target.value)}
-                className="w-full rounded-lg border bg-canvas px-3 py-3 text-sm outline-none focus:border-teal"
-              >
-                <option>Engineering</option>
-                <option>Infrastructure</option>
-                <option>Data & AI</option>
-              </select>
+              <input value={department} onChange={e => setDepartment(e.target.value)} className="w-full rounded-lg border p-3" placeholder="Department or domain" />
             </label>
 
             <label className="block">
@@ -146,6 +138,7 @@ export default function CreateJob() {
               />
             </label>
 
+            <label className="block"><span>Minimum experience (months)</span><input aria-label="Minimum experience (months)" type="number" min="0" step="1" required value={experienceMonths} onChange={e => setExperienceMonths(e.target.value)} className="w-full rounded-lg border p-3" /></label>
             <button
               type="submit"
               disabled={saving || saved}
@@ -156,7 +149,7 @@ export default function CreateJob() {
               ) : saving ? (
                 <>Saving to database...</>
               ) : (
-                <><Sparkles size={16} />Save & Extract requirements</>
+                <><Sparkles size={16} />Save job</>
               )}
             </button>
           </form>
@@ -165,11 +158,11 @@ export default function CreateJob() {
         <section className="panel p-6">
           <div className="mb-6 flex items-center justify-between">
             <div>
-              <p className="eyebrow mb-2">AI extraction</p>
+              <p className="eyebrow mb-2">Entered requirements</p>
               <h2 className="text-xl font-extrabold">Requirements</h2>
             </div>
             <span className="rounded-full bg-mint px-2 py-1 text-[10px] font-bold text-teal">
-              {requirements.length} found
+              {requirements.length} entered
             </span>
           </div>
 

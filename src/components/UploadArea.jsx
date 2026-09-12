@@ -1,13 +1,11 @@
 import { useState } from 'react'
 import { CheckCircle2, FileUp, LoaderCircle, UploadCloud, AlertCircle } from 'lucide-react'
 import { uploadResumes } from '../services/api'
+import { uploadOutcome } from '../services/viewData'
 import ErrorBanner from './ErrorBanner'
 
 export default function UploadArea({ onUploadSuccess }) {
-  const [fileList, setFileList] = useState([
-    { name: 'Rahul_Resume.pdf', status: 'Parsed' },
-    { name: 'Priya_Nair_CV.pdf', status: 'Parsed' }
-  ])
+  const [fileList, setFileList] = useState([])
   const [uploading, setUploading] = useState(false)
   const [errorMsg, setErrorMsg] = useState(null)
 
@@ -17,6 +15,7 @@ export default function UploadArea({ onUploadSuccess }) {
 
     setErrorMsg(null)
     const allowedExts = ['.pdf', '.docx', '.txt']
+    const batchId = crypto.randomUUID()
     const validFiles = []
     const newItems = []
 
@@ -31,7 +30,7 @@ export default function UploadArea({ onUploadSuccess }) {
         return
       }
       validFiles.push(file)
-      newItems.push({ name: file.name, status: 'Processing...' })
+      newItems.push({ name: file.name, batchId, index: newItems.length, status: 'Processing...' })
     }
 
     setFileList(old => [...newItems, ...old])
@@ -39,10 +38,8 @@ export default function UploadArea({ onUploadSuccess }) {
 
     try {
       const response = await uploadResumes(validFiles)
-      setFileList(old => old.map(item => {
-        const found = validFiles.find(f => f.name === item.name)
-        return found ? { ...item, status: 'Parsed' } : item
-      }))
+      setFileList(old => old.map(item => item.batchId === batchId
+        ? { ...item, ...uploadOutcome(response?.file_results?.[item.index]) } : item))
       if (onUploadSuccess) {
         onUploadSuccess(response)
       }
@@ -50,7 +47,7 @@ export default function UploadArea({ onUploadSuccess }) {
       const msg = err.message || 'Upload failed. Please check backend connection.'
       setErrorMsg(msg)
       setFileList(old => old.map(item => {
-        const found = validFiles.find(f => f.name === item.name)
+        const found = item.batchId === batchId
         return found ? { ...item, status: 'Failed', error: msg } : item
       }))
     } finally {
@@ -77,7 +74,7 @@ export default function UploadArea({ onUploadSuccess }) {
         <span className="mb-3 grid h-12 w-12 place-items-center rounded-full bg-mint text-teal">
           <UploadCloud size={22} />
         </span>
-        <span className="text-sm font-bold">Drop resumes here or browse files</span>
+        <span className="text-sm font-bold">Browse resume files</span>
         <span className="mt-2 text-xs text-muted">PDF, DOCX and TXT · Max 10 MB per file</span>
       </label>
 
@@ -88,9 +85,9 @@ export default function UploadArea({ onUploadSuccess }) {
               <FileUp size={15} className="text-muted" />
               {file.name}
             </div>
-            {file.status === 'Parsed' ? (
+            {['Parsed', 'Already stored'].includes(file.status) ? (
               <span className="flex items-center gap-1 text-[11px] font-bold text-teal">
-                <CheckCircle2 size={15} />Parsed
+                <CheckCircle2 size={15} />{file.status}
               </span>
             ) : file.status === 'Processing...' ? (
               <span className="flex items-center gap-1 text-[11px] font-bold text-[#a17612]">
@@ -98,7 +95,7 @@ export default function UploadArea({ onUploadSuccess }) {
               </span>
             ) : (
               <span className="flex items-center gap-1 text-[11px] font-bold text-[#dc2626]" title={file.error}>
-                <AlertCircle size={14} />Failed
+                <AlertCircle size={14} />Failed: {file.error}
               </span>
             )}
           </div>

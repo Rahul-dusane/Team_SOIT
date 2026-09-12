@@ -3,28 +3,28 @@ import { FileText, Filter, Search, Upload } from 'lucide-react'
 import UploadArea from '../components/UploadArea'
 import CandidateCard from '../components/CandidateCard'
 import ErrorBanner from '../components/ErrorBanner'
-import { candidates as mockCandidates } from '../data/mockData'
 import { getCandidates, formatCandidateForUI } from '../services/api'
 
 export default function Resumes() {
   const [query, setQuery] = useState('')
-  const [candidatesList, setCandidatesList] = useState(mockCandidates)
+  const [candidatesList, setCandidatesList] = useState([])
   const [loading, setLoading] = useState(true)
   const [errorMsg, setErrorMsg] = useState(null)
 
   const fetchCandidates = useCallback(async () => {
     try {
       setLoading(true)
+      setErrorMsg(null)
       const data = await getCandidates()
       if (Array.isArray(data) && data.length > 0) {
         const formatted = data.map((c, i) => formatCandidateForUI(c, i))
         setCandidatesList(formatted)
       } else {
-        setCandidatesList(mockCandidates)
+        setCandidatesList([])
       }
     } catch (err) {
-      setErrorMsg(err.message || 'Could not fetch candidates from backend. Displaying demo candidates.')
-      setCandidatesList(mockCandidates)
+      setErrorMsg(err.message || 'Could not fetch candidates from backend.')
+      setCandidatesList([])
     } finally {
       setLoading(false)
     }
@@ -71,16 +71,14 @@ export default function Resumes() {
               <div>
                 <p className="font-bold">Resume parsing engine</p>
                 <p className="text-xs text-muted">
-                  {candidatesList.length} candidates in database
+                  {loading ? 'Loading candidates…' : errorMsg ? 'Candidate count unavailable' : `${candidatesList.length} candidates in database`}
                 </p>
               </div>
             </div>
-            <div className="h-2 overflow-hidden rounded-full bg-[#edf1f1]">
-              <div className="h-full w-[85%] rounded-full bg-teal" />
-            </div>
+
           </div>
           <p className="mt-4 text-xs leading-5 text-muted">
-            HireLens extracts experience, skills, education, projects, and certifications automatically with pgvector indexing.
+            Upload results below report processing status for each file. Open a candidate to review the saved profile.
           </p>
         </div>
       </div>
@@ -101,9 +99,7 @@ export default function Resumes() {
               placeholder="Search candidates by name, role, skill"
             />
           </div>
-          <button className="btn-soft px-3">
-            <Filter size={15} />
-          </button>
+
         </div>
       </div>
 

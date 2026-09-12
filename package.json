@@ -7,7 +7,9 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "node --test tests/frontend/data.test.js",
+    "test:scenarios": "vite --config tests/frontend/scenarios.config.js"
   },
   "dependencies": {
     "axios": "^1.12.2",
