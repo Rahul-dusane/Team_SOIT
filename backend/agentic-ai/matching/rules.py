@@ -192,7 +192,16 @@ def check_mandatory_requirements(
 ) -> Tuple[bool, List[FailedRequirement]]:
     failed = []
 
-    # 1. Check against evidence-backed requirement assessments if provided
+    # 1. Experience Constraint
+    if job.min_experience_months > 0 and candidate.total_experience_months < job.min_experience_months:
+        failed.append(FailedRequirement(
+            type="experience",
+            required=job.min_experience_months,
+            candidate=candidate.total_experience_months,
+            message=f"Candidate experience ({candidate.total_experience_months} mos) is below mandatory requirement ({job.min_experience_months} mos)."
+        ))
+
+    # 2. Check against evidence-backed requirement assessments if provided
     if assessments:
         for a in assessments:
             if a.mandatory and a.status not in ["satisfied", "partially_supported"]:
@@ -205,7 +214,7 @@ def check_mandatory_requirements(
         passed = len(failed) == 0
         return passed, failed
 
-    # 2. Standalone fallback check
+    # 3. Standalone fallback check
     must_have_set = set()
     for s in job.must_have_skills:
         if s and len(s) < 40 and not any(w in s.lower() for w in ["experience", "years", "building", "proficient"]):
