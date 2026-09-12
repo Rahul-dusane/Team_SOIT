@@ -26,13 +26,40 @@ def extract_candidate_profile_from_text(raw_text: str, filename: str, candidate_
     if not candidate_id:
         candidate_id = f"CAND_{uuid.uuid4().hex[:8].upper()}"
 
+    import os
     # Try Member 1 Structured Agent Extractor first if available
     try:
         from app.agents.resume_agent import extract_candidate_profile as member1_extract
         agent_profile = member1_extract(candidate_id, raw_text)
         if agent_profile:
-            agent_profile.unmapped_fields["source_filename"] = filename
-            return agent_profile
+            p_name = getattr(agent_profile, "name", "") or ""
+            # Filter out hardcoded MockLLM Alex Johnson profile if resume belongs to a different candidate
+            if p_name == "Alex Johnson" and "alex johnson" not in raw_text.lower():
+                agent_profile = None
+            else:
+                if not hasattr(agent_profile, "unmapped_fields") or agent_profile.unmapped_fields is None:
+                    agent_profile.unmapped_fields = {}
+                agent_profile.unmapped_fields["source_filename"] = filename
+                
+                # Convert app.schemas CandidateProfile to contracts CandidateProfile if necessary
+                if not isinstance(agent_profile, CandidateProfile):
+                    dumped = agent_profile.model_dump() if hasattr(agent_profile, "model_dump") else dict(agent_profile)
+                    if "skills" in dumped and isinstance(dumped["skills"], list):
+                        norm_skills = []
+                        for s in dumped["skills"]:
+                            if isinstance(s, dict):
+                                raw_s = s.get("name") or s.get("raw_skill") or "Skill"
+                                norm_skills.append({
+                                    "raw_skill": raw_s,
+                                    "normalized_skill": raw_s.lower(),
+                                    "confidence": s.get("confidence", 1.0),
+                                    "evidence": s.get("evidence")
+                                })
+                        dumped["skills"] = norm_skills
+                    if "experience" in dumped and "experiences" not in dumped:
+                        dumped["experiences"] = dumped.pop("experience")
+                    agent_profile = CandidateProfile(**dumped)
+                return agent_profile
     except Exception:
         pass
 
@@ -42,8 +69,14 @@ def extract_candidate_profile_from_text(raw_text: str, filename: str, candidate_
     name = "Anonymous Candidate"
     if lines:
         first_line = lines[0]
-        if len(first_line) < 50 and not any(k in first_line.lower() for k in ["resume", "cv", "curriculum"]):
+        if len(first_line) < 50 and not any(k in first_line.lower() for k in ["resume", "cv", "curriculum", "page", "profile"]):
             name = first_line
+
+    if (name == "Anonymous Candidate" or len(name) > 60) and filename:
+        clean_file_name = os.path.splitext(filename)[0]
+        clean_file_name = re.sub(r'\s*\([^)]*\)', '', clean_file_name).strip()
+        if clean_file_name:
+            name = clean_file_name.title()
 
     # Email & phone extraction
     email_match = re.search(r'[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}', raw_text)
@@ -62,10 +95,17 @@ def extract_candidate_profile_from_text(raw_text: str, filename: str, candidate_
     # Skills extraction using domain taxonomy keywords
     skills_found = []
     known_skill_keywords = [
-        "Python", "FastAPI", "Flask", "Django", "PostgreSQL", "MySQL", "MongoDB",
+        # Cybersecurity & Information Security
+        "Vulnerability Assessment", "Penetration Testing", "Ethical Hacking", "CEH", "Cybersecurity",
+        "Network Security", "Information Security", "Wireshark", "Metasploit", "Nmap", "Burp Suite",
+        "SIEM", "Firewalls", "Incident Response", "Risk Assessment", "CISSP", "OWASP", "Linux",
+        # Software & Cloud
+        "Python", "FastAPI", "Flask", "Django", "PostgreSQL", "MySQL", "MongoDB", "SQLite",
         "AWS", "Azure", "GCP", "Docker", "Kubernetes", "React", "Node.js", "Java",
-        "JavaScript", "TypeScript", "C++", "C#", "Go", "SQL", "General Ledger",
-        "Bookkeeping", "Financial Close", "Auditing", "Taxation", "Payroll",
+        "JavaScript", "TypeScript", "C++", "C#", "Go", "SQL", "Git", "CI/CD", "REST API",
+        # Accounting & Finance
+        "General Ledger", "Bookkeeping", "Financial Close", "Auditing", "Taxation", "Payroll",
+        # Healthcare & Nursing
         "Patient Care", "Clinical Nursing", "ICU", "Triage", "Phlebotomy", "EHR", "IV Administration"
     ]
     
@@ -79,7 +119,7 @@ def extract_candidate_profile_from_text(raw_text: str, filename: str, candidate_
 
     # Experience entries extraction (strictly factual)
     experiences = []
-    role_matches = re.findall(r'(?:Senior|Lead|Staff|Junior|Associate)?\s*(?:Software Engineer|Backend Developer|Developer|Accountant|Financial Analyst|Nurse|Clinical Nurse|Manager|Consultant)', raw_text, re.IGNORECASE)
+    role_matches = re.findall(r'(?:Senior|Lead|Staff|Junior|Associate)?\s*(?:Software Engineer|Backend Developer|Developer|Accountant|Financial Analyst|Nurse|Clinical Nurse|Security Analyst|Penetration Tester|Ethical Hacker|Manager|Consultant)', raw_text, re.IGNORECASE)
     for role in set(role_matches):
         experiences.append(CandidateExperience(
             role=role,
@@ -100,9 +140,20 @@ def extract_candidate_profile_from_text(raw_text: str, filename: str, candidate_
 
     # Extract certifications and domains
     certifications = []
-    cert_matches = re.findall(r'\b(?:CPA|RN|AWS Certified|PMP|CFA|ACCA|CKA)\b[^\.\n]*', raw_text, re.IGNORECASE)
+    cert_matches = re.findall(r'\b(?:CPA|RN|AWS Certified|PMP|CFA|ACCA|CKA|CEH|CISSP|CompTIA|Security\+|Network\+)\b[^\.\n]*', raw_text, re.IGNORECASE)
     for c in cert_matches:
         certifications.append(c.strip())
+
+    domains = ["General"]
+    raw_lower = raw_text.lower()
+    if any(k in raw_lower for k in ["cybersecurity", "penetration testing", "vulnerability assessment", "ceh", "ethical hacking", "security"]):
+        domains = ["Cybersecurity & Information Security"]
+    elif any(k in raw_lower for k in ["python", "java", "fastapi", "react", "developer", "software"]):
+        domains = ["Engineering & IT"]
+    elif any(k in raw_lower for k in ["accounting", "ledger", "bookkeeping", "audit", "tax"]):
+        domains = ["Finance & Accounting"]
+    elif any(k in raw_lower for k in ["nurse", "patient", "clinical", "icu", "triage"]):
+        domains = ["Healthcare"]
 
     return CandidateProfile(
         candidate_id=candidate_id,
@@ -114,7 +165,7 @@ def extract_candidate_profile_from_text(raw_text: str, filename: str, candidate_
         experiences=experiences,
         education=education,
         certifications=certifications,
-        domains=["Engineering" if "Python" in raw_text or "Java" in raw_text else "General"],
+        domains=domains,
         unmapped_fields={"source_filename": filename}
     )
 

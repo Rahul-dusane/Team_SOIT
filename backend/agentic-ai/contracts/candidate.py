@@ -65,7 +65,7 @@ class CandidateProfile(BaseModel):
     phone: Optional[str] = None
     total_experience_months: int = Field(default=0, ge=0)
     skills: List[CandidateSkill] = Field(default_factory=list)
-    experiences: List[CandidateExperience] = Field(default_factory=list, validation_alias=AliasChoices("experiences", "work_history", "employment_history"))
+    experiences: List[CandidateExperience] = Field(default_factory=list, validation_alias=AliasChoices("experiences", "experience", "work_history", "employment_history"))
     education: List[CandidateEducation] = Field(default_factory=list, validation_alias=AliasChoices("education", "qualifications", "academic_background"))
     projects: List[CandidateProject] = Field(default_factory=list)
     domains: List[str] = Field(default_factory=list)

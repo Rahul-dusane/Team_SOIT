@@ -32,7 +32,7 @@ export default function MatchDetail() {
       const savedJobs = await getJobs()
       if (!active) return
       if (!Array.isArray(savedJobs)) throw new Error('Invalid jobs response.')
-      setJobs(savedJobs); setJobId(result?.job_id || '')
+      setJobs(savedJobs); setJobId(result?.job_id || (savedJobs.length > 0 ? savedJobs[0].job_id : ''))
     }
     load().catch(e => { if (active) setError(e.message) }).finally(() => { if (active) setLoading(false) })
     return () => { active = false }
