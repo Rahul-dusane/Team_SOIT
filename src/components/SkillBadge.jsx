@@ -1,1 +1,5 @@
-export default function SkillBadge({ children, type = 'matched', onClick }) { const colors = { matched: 'bg-mint text-teal', missing: 'bg-[#fff0eb] text-[#ce654d]', transferable: 'bg-[#fff6d9] text-[#a17612]' }; return <button onClick={onClick} className={`rounded-md px-2.5 py-1 text-[11px] font-bold ${colors[type] || colors.matched}`}>{type === 'missing' ? '× ' : type === 'transferable' ? '≈ ' : '✓ '}{children}</button> }
+export default function SkillBadge({ children, type = 'recorded', onClick }) {
+  const colors = { recorded: 'bg-canvas text-muted', matched: 'bg-mint text-teal', missing: 'bg-[#fff0eb] text-coral', transferable: 'bg-[#fff6d9] text-[#a17612]' }
+  const props = { className: `rounded-md px-2.5 py-1 text-[11px] font-bold ${colors[type] || colors.recorded}` }
+  return onClick ? <button {...props} onClick={onClick}>{children}</button> : <span {...props}>{children}</span>
+}

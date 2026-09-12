@@ -18,7 +18,7 @@ from nlp.evidence_retriever import retrieve_candidate_evidence
 from config.matching_config import DEFAULT_MATCHING_CONFIG, MatchingConfig
 
 
-def match_candidate_to_job(candidate: CandidateProfile, job: JobProfile, cfg: MatchingConfig = DEFAULT_MATCHING_CONFIG) -> MatchResult:
+def match_candidate_to_job(candidate: CandidateProfile, job: JobProfile, cfg: MatchingConfig = DEFAULT_MATCHING_CONFIG, db: Any = None) -> MatchResult:
     if not candidate:
         raise ValueError("Candidate profile cannot be None")
     if not job:
@@ -45,7 +45,8 @@ def match_candidate_to_job(candidate: CandidateProfile, job: JobProfile, cfg: Ma
             requirement_text=req.description,
             candidate=candidate,
             req_skill=req.skill,
-            min_duration_months=req.minimum_duration_months
+            min_duration_months=req.minimum_duration_months,
+            db=db
         )
         
         status_mult = 1.0 if status == "satisfied" else (0.5 if status == "partially_supported" else 0.0)

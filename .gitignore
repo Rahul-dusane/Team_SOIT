@@ -1,10 +1,20 @@
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> rahul
 __pycache__/
 *.py[cod]
 *$py.class
 .pytest_cache/
 .env
 *.log
+<<<<<<< HEAD
 =======
 node_modules
 >>>>>>> ce7808e163f0ed9ef3ea4d0312cef982ba957df5
+=======
+*.db
+node_modules/
+dist/
+.vite/
+>>>>>>> rahul

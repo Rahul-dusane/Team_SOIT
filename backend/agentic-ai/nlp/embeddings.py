@@ -28,8 +28,12 @@ class EmbeddingService:
         if self._model is None:
             with self._lock:
                 if self._model is None:
-                    from sentence_transformers import SentenceTransformer
-                    self._model = SentenceTransformer("all-MiniLM-L6-v2")
+                    try:
+                        from sentence_transformers import SentenceTransformer
+                        self._model = SentenceTransformer("all-MiniLM-L6-v2")
+                    except Exception as e:
+                        from vector_store import FallbackVectorModel
+                        self._model = FallbackVectorModel()
         return self._model
 
     def _hash_text(self, text: str) -> str:
@@ -45,7 +49,8 @@ class EmbeddingService:
             return self._cache[key]
 
         model = self._get_model()
-        vector = model.encode(text, convert_to_numpy=True)
+        vec_raw = model.encode(text)
+        vector = np.array(vec_raw, dtype=np.float32)
 
         # Enforce bounded LRU-style cache size
         with self._lock:

@@ -1,1 +1,4 @@
-export default function ScoreBreakdown({ data }) { return <div className="space-y-4">{data.map(item => <div key={item.name}><div className="mb-1.5 flex justify-between text-xs font-bold"><span>{item.name}</span><span className="text-muted">{item.score}%</span></div><div className="h-2 overflow-hidden rounded-full bg-[#edf1f1]"><div className={`h-full rounded-full ${item.score >= 90 ? 'bg-teal' : item.score >= 80 ? 'bg-[#d7ab39]' : 'bg-coral'}`} style={{ width: `${item.score}%` }} /></div></div>)}</div> }
+export default function ScoreBreakdown({ data = [] }) {
+  if (!data.length) return <p className="text-sm text-muted">Score breakdown unavailable.</p>
+  return <div className="space-y-3"><p className="text-xs text-muted">Raw weighted contributions before final scoring rules.</p>{data.map(item => <div key={item.name} className="flex justify-between border-b py-2 text-sm"><span>{item.name.replaceAll('_', ' ')}</span><span>{item.score} points</span></div>)}</div>
+}

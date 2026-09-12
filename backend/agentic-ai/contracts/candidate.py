@@ -72,6 +72,23 @@ class CandidateProfile(BaseModel):
     certifications: List[str] = Field(default_factory=list, validation_alias=AliasChoices("certifications", "licenses", "credentials"))
     unmapped_fields: Dict[str, Any] = Field(default_factory=dict, description="Preserves unsupported fields for auditability")
 
+    @field_validator("projects", mode="before")
+    @classmethod
+    def validate_projects(cls, v: Any) -> List[Any]:
+        if v is None:
+            return []
+        if isinstance(v, list):
+            res = []
+            for item in v:
+                if isinstance(item, str):
+                    res.append({"title": item, "description": "", "technologies": []})
+                else:
+                    res.append(item)
+            return res
+        if isinstance(v, str):
+            return [{"title": v, "description": "", "technologies": []}]
+        return []
+
     @field_validator("certifications", mode="before")
     @classmethod
     def validate_certifications(cls, v: Any) -> List[str]:

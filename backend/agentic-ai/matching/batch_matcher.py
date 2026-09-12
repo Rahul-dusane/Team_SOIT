@@ -31,6 +31,7 @@ def match_candidates_to_job(candidates: List[CandidateProfile], job: JobProfile,
             })
 
     ranked = rank_candidates(matches)
+    cand_map = {m.candidate_id: m for m in matches}
     return {
         "job_id": job.job_id,
         "job_title": job.title,
@@ -38,7 +39,8 @@ def match_candidates_to_job(candidates: List[CandidateProfile], job: JobProfile,
         "successful_matches": len(matches),
         "errors": errors,
         "rankings": ranked,
-        "matches": matches
+        "matches": matches,
+        "candidate_matches": cand_map
     }
 
 

@@ -1,82 +1,84 @@
-# HireLens — Multi-Agent Recruitment Intelligence Backend
+# HireLens — Multi-Agent Recruitment Intelligence System
 
-HireLens is an explainable stateful multi-agent recruitment intelligence platform built with FastAPI, LangGraph, LangChain, spaCy, sentence-transformers, and PostgreSQL/pgvector.
+HireLens is an explainable multi-agent recruitment intelligence platform built with FastAPI, LangGraph, LangChain, spaCy, sentence-transformers, SQLAlchemy, and PostgreSQL/pgvector.
 
-## Member 2 — Data Science / NLP / Matching Engine
+---
 
-Member 2 owns the intelligence, semantic understanding, skill normalization, 5-tier matching hierarchy, 100-point scoring model, skill gap analysis, batch matching, and quantitative evaluation layer.
+## Team Subsystem Architecture
 
-### Directory Structure
+### Member 1 — Agentic AI / LLM / Extraction Engine
+- **Resume Agent**: Converts unstructured resumes into strict `CandidateProfile` Pydantic models.
+- **Job Agent**: Converts unstructured job descriptions into machine-readable `JobProfile` specifications with requirement weights (1–10).
+- **Skill Gap Agent**: Explains missing skills identified by Member 2's matching engine and discovers transferable skills.
+- **Evidence Agent**: Audits candidate experience against job requirements and pulls direct verifiable quotes.
+- **Recruiter Agent**: Synthesizes the deterministic match score, breakdown, evidence, and gaps into an actionable recruiter briefing.
+- **LangGraph Orchestrator**: Manages state transitions, parallel processing, and end-to-end execution.
 
-```
+### Member 2 — Data Science / NLP / Matching Engine
+- **5-Tier Skill Matching Hierarchy**: Exact, Equivalent (Alias), Transferable (Matrix), Related (Fuzzy), Missing.
+- **100-Point Weighted Scoring Model**: Evaluates Must-Have skills, Preferred skills, Experience duration, Role similarity, Education, Projects, and Domain fit.
+- **Evidence Retriever**: Verifies candidate evidence using strict word boundaries (`Java` vs `JavaScript`) and negation/contradiction detection.
+- **Skill Gap Engine**: Categorizes gaps into Critical, Moderate, Optional, and Transferable.
+
+### Member 3 — Database, Vector Storage & REST API Services
+- **Supabase Cloud PostgreSQL & pgvector**: 384-dimensional vector embeddings (`all-MiniLM-L6-v2`) with isolated vector similarity retrieval (`<->` / `<=>`).
+- **Multi-Format Ingestion**: Validated parsing for PDF (with page numbers), DOCX, and TXT.
+- **Atomic Match Persistence**: Single-transaction database storage for candidate profiles, jobs, document chunks, match results, requirement assessments, evidence passages, gaps, summaries, and agent logs.
+- **REST API Layer**: Production FastAPI service exposing endpoints for upload, candidate/job management, match execution, candidate ranking, and stats dashboard.
+
+---
+
+## Directory Structure
+
+```text
 backend/agentic-ai/
-├── config/
-│   └── matching_config.py          # Validated MatchingConfig with weights & thresholds
-├── contracts/
-│   ├── candidate.py                # CandidateProfile Pydantic schema
-│   ├── job.py                      # JobProfile & JobRequirement Pydantic schema
-│   └── match.py                    # MatchResult & SkillGaps Pydantic schema
-├── datasets/
-│   ├── skills.csv                  # Canonical skill taxonomy
-│   ├── aliases.csv                 # Skill alias dictionary
-│   ├── skill_relationships.csv     # Technology transferability matrix
-│   ├── education_levels.csv        # Degree level hierarchy mapping
-│   └── ground_truth.csv            # 10x3 Benchmark evaluation ground truth
-├── nlp/
-│   ├── aliases.py                  # Alias lookup service
-│   ├── preprocessing.py            # spaCy text cleaning & date math
-│   ├── skill_normalizer.py         # 3-tier normalization (alias + fuzzy + canonical)
-│   ├── skill_relationships.py      # Transferability & relationship lookup
-│   ├── role_normalizer.py          # Canonical role normalization
-│   ├── embeddings.py               # Singleton SentenceTransformer with hash caching
-│   └── similarity.py               # Cosine similarity calculation
-├── matching/
-│   ├── feature_filter.py           # PII-Safe feature filtering & sanitization
-│   ├── rules.py                    # 5-tier matching hierarchy & mandatory checks
-│   ├── feature_engineering.py      # 8-feature candidate-job matrix computation
-│   ├── scorer.py                   # 100-point weighted score calculator
-│   ├── gap_engine.py               # Critical, moderate, optional gap categorization
-│   ├── ranking.py                  # Candidate ranking engine
-│   ├── batch_matcher.py            # Isolated batch matching (10x3 = 30 matches)
-│   ├── metrics.py                  # Precision@K, Recall@K, NDCG@K, Spearman correlation
-│   ├── evaluation.py               # Ground truth benchmark experiment runner
-│   └── pipeline.py                 # Unified single match entry point
-├── notebooks/
-│   └── evaluation.ipynb            # Jupyter evaluation notebook
-├── tests/                          # 11 Unit & Integration test modules
-│   ├── test_normalizer.py
-│   ├── test_relationships.py
-│   ├── test_similarity.py
-│   ├── test_rules.py
-│   ├── test_features.py
-│   ├── test_scorer.py
-│   ├── test_gap_engine.py
-│   ├── test_ranking.py
-│   ├── test_batch_matcher.py
-│   ├── test_pipeline.py
-│   └── test_edge_cases.py
-├── main.py                         # FastAPI web server entry point
-└── verify_member2.py               # Verification script for 10x3 demo
+├── app/                            # Member 1 Agentic Workflows & Schemas
+│   ├── agents/                     # LangChain Resume, Job, Gap, Evidence, Recruiter Agents
+│   ├── prompts/                    # Structured system prompts
+│   ├── schemas/                    # Pydantic state contracts
+│   └── workflows/                  # LangGraph StateGraph pipeline
+├── config/                         # MatchingConfig weights & thresholds
+├── contracts/                      # Pydantic Data Contracts (Candidate, Job, Match)
+├── datasets/                       # Taxonomy, alias dictionary, ground truth dataset
+├── db/                             # PostgreSQL DDL schema, SQLAlchemy ORM models, Repositories
+├── ingestion/                      # Multi-format document parser & chunker
+├── matching/                       # Core matching engine, rules, scorer, gap engine, batch matcher
+├── nlp/                            # Normalizer, preprocessing, embeddings, evidence retriever
+├── tests/                          # Automated Pytest unit & integration suite
+├── vector_store.py                 # pgvector 384-dim vector storage engine
+├── main.py                         # Unified FastAPI application entry point
+├── verify_member2.py               # Member 2 batch verification script
+└── verify_member3.py               # Member 3 database & ingestion verification script
 ```
 
-## Testing & Execution Instructions
+---
 
-### 1. Run Unit Tests via Pytest
-From the repository root (`d:\Team_SOIT`):
-```bash
-python -m pytest backend/agentic-ai/tests -v
+## Testing & Execution
+
+### 1. Environment & Gemini Configuration (`.env`)
+Create `.env` inside `backend/agentic-ai/`:
+```env
+LLM_PROVIDER=gemini
+GEMINI_API_KEY=your_gemini_api_key_here
+GEMINI_MODEL=gemini-1.5-flash
+API_KEY=hirelens_secret_key_2026
 ```
 
-### 2. Run 10x3 Demo Verification Script
-```bash
-python backend/agentic-ai/verify_member2.py
+### 2. Run Automated Pytest Suite
+```powershell
+$env:OPENBLAS_NUM_THREADS="1"; $env:OMP_NUM_THREADS="1"; $env:TESTING="true"; python -m pytest backend/agentic-ai/tests -v
 ```
 
-### 3. Launch FastAPI Development Server
-```bash
-python backend/agentic-ai/main.py
+### 3. Run Live Supabase Verification Script
+```powershell
+python backend/agentic-ai/verify_member3.py
 ```
-Or with Uvicorn:
-```bash
-uvicorn backend.agentic-ai.main:app --reload
+
+### 4. Start FastAPI Production Server
+```powershell
+$env:OPENBLAS_NUM_THREADS="1"; $env:OMP_NUM_THREADS="1"; python -m uvicorn main:app --app-dir backend/agentic-ai --port 8000
 ```
+
+- **Interactive Swagger UI**: `http://localhost:8000/docs`
+- **Health & Metrics Endpoint**: `http://localhost:8000/health`
+- **API Documentation**: See [`API_DOCUMENTATION.md`](file:///C:/Users/rahul/.gemini/antigravity/brain/ecb0ed92-eaa8-4327-a6bf-66d746ccceb0/API_DOCUMENTATION.md)

@@ -1,3 +1,4 @@
-import { CheckCircle2, Circle, LoaderCircle } from 'lucide-react'
-import { agentSteps } from '../data/mockData'
-export default function AgentTimeline() { return <div className="flex flex-wrap gap-2">{agentSteps.map((step, index) => <div key={step} className="flex items-center gap-2 rounded-lg bg-canvas px-3 py-2 text-xs font-bold"><span className="text-teal">{index < 4 ? <CheckCircle2 size={15} /> : <LoaderCircle size={15} className="animate-spin" />}</span>{step}</div>)}</div> }
+export default function AgentTimeline({ logs = [] }) {
+  if (!Array.isArray(logs) || !logs.length) return <p className="text-sm text-muted">No agent execution logs available.</p>
+  return <ol className="flex flex-wrap gap-3">{[...logs].sort((a,b) => a.step_index - b.step_index).map((log, i) => <li key={i} className="rounded-lg bg-canvas p-3 text-xs"><strong>{log.agent_name || 'Unnamed agent'}</strong><p>{log.status || 'Status unavailable'}{typeof log.duration_ms === 'number' ? ` · ${log.duration_ms} ms` : ''}</p></li>)}</ol>
+}

@@ -48,9 +48,15 @@ def word_boundary_match(keyword: str, text: str) -> bool:
     return bool(re.search(pattern, text, re.IGNORECASE))
 
 
-def retrieve_candidate_evidence(requirement_text: str, candidate: CandidateProfile, req_skill: str = None, min_duration_months: int = 0) -> Tuple[str, str, Optional[int], float]:
+def retrieve_candidate_evidence(
+    requirement_text: str,
+    candidate: CandidateProfile,
+    req_skill: str = None,
+    min_duration_months: int = 0,
+    db: Any = None
+) -> Tuple[str, str, Optional[int], float]:
     """
-    Searches candidate profile for supporting evidence text for an arbitrary requirement.
+    Searches candidate profile and stored vector chunks for supporting evidence text for an arbitrary requirement.
     Returns (status, evidence_passage, page, confidence).
     Statuses: 'satisfied' (1.0), 'partially_supported' (0.5), 'contradicted' (0.0), 'unknown' (0.0).
     """
@@ -145,7 +151,29 @@ def retrieve_candidate_evidence(requirement_text: str, candidate: CandidateProfi
             if word_boundary_match(term, cert):
                 return "satisfied", f"Certified: {cert}", None, 1.0
 
-    # 5. Status Determination based on Validated Standards
+    # 5. Vector Store Chunk Lookup if DB session is provided
+    if db is not None and candidate.candidate_id:
+        try:
+            from vector_store import retrieve_evidence_from_vector_store
+            vector_results = retrieve_evidence_from_vector_store(db, candidate.candidate_id, requirement_text, top_k=2)
+            for v_res in vector_results:
+                v_sim = v_res["similarity"]
+                v_text = v_res["content"]
+                v_page = v_res["page_number"]
+                for term in search_terms:
+                    if contains_negation(v_text, term):
+                        return "contradicted", f"Contradiction detected in vector chunk: '{v_text}'", v_page, 1.0
+                    if word_boundary_match(term, v_text):
+                        return "satisfied", f"[Vector Match p.{v_page}] {v_text}", v_page, 1.0
+
+                if v_sim > best_sim:
+                    best_sim = v_sim
+                    best_passage = f"[Vector Match p.{v_page}] {v_text}"
+                    best_page = v_page
+        except Exception:
+            pass
+
+    # 6. Status Determination based on Validated Standards
     if best_sim >= 0.85:
         return "satisfied", best_passage, best_page, round(best_sim, 2)
     elif best_sim >= 0.65:
