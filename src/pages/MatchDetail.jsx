@@ -25,7 +25,7 @@ export default function MatchDetail() {
       let result = null
       try { result = await getMatchDetails(id) } catch (e) { if (e.status !== 404) throw e }
       if (!active) return
-      if (result) setMatch(result)
+      if (result && result.status !== 'no_match' && result.match_id) setMatch(result)
       const profile = await getCandidateById(result?.candidate_id || id)
       if (!active) return
       setCandidate(formatCandidateForUI(profile))

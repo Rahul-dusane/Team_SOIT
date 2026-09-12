@@ -83,3 +83,13 @@ def test_resume_upload_api():
     res_cand = client.get(f"/api/v1/candidates/{cand_id}")
     assert res_cand.status_code == 200
     assert res_cand.json()["name"] == "John Smith"
+
+
+def test_get_match_by_candidate_no_match():
+    # Candidate ID without calculated match record should return HTTP 200 with status "no_match"
+    res = client.get("/api/v1/matches/CAND_UNSAVED_TEST")
+    assert res.status_code == 200
+    data = res.json()
+    assert data["status"] == "no_match"
+    assert data["match"] is None
+

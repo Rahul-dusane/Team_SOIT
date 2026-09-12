@@ -444,6 +444,9 @@ def get_match_by_id_or_candidate(match_id: str, db: Session = Depends(get_db)):
         match_record = match_repo.get_match_by_candidate_id(match_id)
 
     if not match_record:
+        cand_repo = CandidateRepository(db)
+        if match_id.startswith("CAND_") or cand_repo.get_candidate(match_id):
+            return {"match": None, "candidate_id": match_id, "status": "no_match"}
         raise HTTPException(status_code=404, detail=f"Match record for '{match_id}' not found.")
 
     return _format_match_response(match_record)

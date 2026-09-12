@@ -203,18 +203,15 @@ def check_mandatory_requirements(
 
     # 2. Check against evidence-backed requirement assessments if provided
     if assessments:
-        must_have_failed = False
         for a in assessments:
             if a.mandatory and a.status not in ["satisfied", "partially_supported"]:
-                must_have_failed = True
                 failed.append(FailedRequirement(
                     type="must_have_skill",
                     required=a.description or a.requirement_id,
                     candidate=a.status,
                     message=f"Candidate failed mandatory requirement '{a.description}' (status: '{a.status}')."
                 ))
-        # Mandatory pass is granted if all mandatory technical skills/qualifications are satisfied
-        passed = not must_have_failed
+        passed = len(failed) == 0
         return passed, failed
 
     # 3. Standalone fallback check
