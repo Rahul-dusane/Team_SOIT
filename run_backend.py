@@ -31,5 +31,6 @@ if __name__ == "__main__":
     print("   Web API Base URL: http://localhost:8000/api/v1")
     print("   Interactive Docs: http://localhost:8000/docs")
     print("   Health Check:     http://localhost:8000/api/v1/health")
-    print("=" * 65)
-    uvicorn.run("main:app", app_dir=backend_dir, host="0.0.0.0", port=8000, reload=True)
+    use_reload = os.getenv("RELOAD", "false").lower() in ("true", "1")
+    uvicorn.run("main:app", app_dir=backend_dir, host="0.0.0.0", port=8000, reload=use_reload)
+
