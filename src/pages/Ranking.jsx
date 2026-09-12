@@ -129,8 +129,8 @@ export default function Ranking() {
           <div>
             {filtered.map((candidate, index) => (
               <Link
-                to={`/matches/${candidate.id || candidate.candidate_id}`}
-                key={candidate.id || candidate.candidate_id || index}
+                to={`/matches/${candidate.match_id || candidate.candidate_id || candidate.id}`}
+                key={candidate.match_id || candidate.candidate_id || candidate.id || index}
                 className="grid grid-cols-[1fr_auto] items-center gap-4 border-b px-5 py-4 transition last:border-0 hover:bg-canvas md:grid-cols-[60px_1fr_150px_130px_120px] md:px-6"
               >
                 <span className="hidden text-sm font-extrabold text-muted md:block">

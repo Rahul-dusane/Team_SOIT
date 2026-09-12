@@ -452,5 +452,11 @@ class MatchRepository:
             MatchModel.candidate_id == candidate_id
         ).first()
 
+    def get_match_by_id(self, match_id: str) -> Optional[MatchModel]:
+        return self.db.query(MatchModel).filter(MatchModel.match_id == match_id).first()
+
+    def get_match_by_candidate_id(self, candidate_id: str) -> Optional[MatchModel]:
+        return self.db.query(MatchModel).filter(MatchModel.candidate_id == candidate_id).order_by(MatchModel.overall_score.desc()).first()
+
     def get_rankings_for_job(self, job_id: str) -> List[MatchModel]:
         return self.db.query(MatchModel).filter(MatchModel.job_id == job_id).order_by(MatchModel.overall_score.desc()).all()

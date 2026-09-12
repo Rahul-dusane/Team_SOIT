@@ -236,14 +236,14 @@ async def upload_resumes(
 
 
 @app.get("/api/v1/candidates", response_model=List[Dict[str, Any]])
-def list_candidates(db: Session = Depends(get_db), auth: bool = Depends(verify_api_key)):
+def list_candidates(db: Session = Depends(get_db)):
     cand_repo = CandidateRepository(db)
     candidates = cand_repo.list_candidates()
     return [c.model_dump() for c in candidates]
 
 
 @app.get("/api/v1/candidates/{candidate_id}")
-def get_candidate_by_id(candidate_id: str, db: Session = Depends(get_db), auth: bool = Depends(verify_api_key)):
+def get_candidate_by_id(candidate_id: str, db: Session = Depends(get_db)):
     cand_repo = CandidateRepository(db)
     candidate = cand_repo.get_candidate(candidate_id)
     if not candidate:
@@ -373,22 +373,7 @@ def get_candidate_rankings_for_job(job_id: Optional[str] = None, db: Session = D
     }
 
 
-@app.get("/api/v1/matches/{job_id}/{candidate_id}")
-@app.get("/api/v1/matches/{match_id}")
-def get_match_breakdown(job_id: str, candidate_id: Optional[str] = None, match_id: Optional[str] = None, db: Session = Depends(get_db)):
-    match_repo = MatchRepository(db)
-    match_record = None
-
-    if candidate_id:
-        match_record = match_repo.get_match(job_id, candidate_id)
-    else:
-        # job_id param was passed as single match_id
-        from db.models import MatchModel
-        match_record = db.query(MatchModel).filter(MatchModel.match_id == job_id).first()
-
-    if not match_record:
-        raise HTTPException(status_code=404, detail="Match record not found.")
-
+def _format_match_response(match_record) -> Dict[str, Any]:
     assessments = [
         {
             "requirement_id": a.requirement_id,
@@ -430,6 +415,28 @@ def get_match_breakdown(job_id: str, candidate_id: Optional[str] = None, match_i
         "summary": summary,
         "agent_logs": agent_logs
     }
+
+
+@app.get("/api/v1/matches/{job_id}/{candidate_id}")
+def get_match_by_job_and_candidate(job_id: str, candidate_id: str, db: Session = Depends(get_db)):
+    match_repo = MatchRepository(db)
+    match_record = match_repo.get_match(job_id, candidate_id)
+    if not match_record:
+        raise HTTPException(status_code=404, detail=f"Match record for job '{job_id}' and candidate '{candidate_id}' not found.")
+    return _format_match_response(match_record)
+
+
+@app.get("/api/v1/matches/{match_id}")
+def get_match_by_id_or_candidate(match_id: str, db: Session = Depends(get_db)):
+    match_repo = MatchRepository(db)
+    match_record = match_repo.get_match_by_id(match_id)
+    if not match_record:
+        match_record = match_repo.get_match_by_candidate_id(match_id)
+
+    if not match_record:
+        raise HTTPException(status_code=404, detail=f"Match record for '{match_id}' not found.")
+
+    return _format_match_response(match_record)
 
 
 @app.get("/api/v1/stats")
