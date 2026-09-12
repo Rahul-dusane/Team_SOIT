@@ -35,6 +35,7 @@ from matching.batch_matcher import match_candidates_to_job
 from db.connection import get_db, init_db
 from db.repositories import CandidateRepository, JobRepository, MatchRepository, DocumentRepository
 from ingestion.pipeline import process_batch_upload, ingest_resume_bytes
+from config.validator import ConfigValidator
 
 # Member 1 Agentic Imports
 try:
@@ -58,6 +59,13 @@ import logging
 logger = logging.getLogger("hirelens.monitoring")
 
 load_dotenv()
+
+# Validate configuration at startup
+is_valid, config_errors = ConfigValidator.validate()
+if not is_valid:
+    print("\n⚠️  WARNING: Configuration validation failed!")
+    ConfigValidator.print_validation_errors(config_errors)
+    print("\n⚠️  Some features may not work correctly. Please fix the configuration above.\n")
 
 app = FastAPI(
     title="HireLens - Multi-Agent Recruitment Intelligence API",

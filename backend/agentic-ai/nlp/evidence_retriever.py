@@ -79,26 +79,38 @@ def retrieve_candidate_evidence(
 
     # 1. Search Candidate Skills
     for s in candidate.skills:
+        if not s or not s.raw_skill:
+            continue
+            
         raw_skill = s.raw_skill
-        ev_text = f"{raw_skill} - {s.evidence or ''}".strip()
+        evidence_text = getattr(s, 'evidence', None) or ""
+        ev_text = f"{raw_skill} - {evidence_text}".strip()
 
         # Contradiction check in skill evidence
-        if s.evidence and contains_negation(s.evidence, raw_skill):
-            return "contradicted", f"Contradiction detected: '{s.evidence}'", s.page, 1.0
+        if evidence_text and contains_negation(evidence_text, raw_skill):
+            return "contradicted", f"Contradiction detected: '{evidence_text}'", getattr(s, 'page', None), 1.0
 
         for term in search_terms:
             if word_boundary_match(term, raw_skill):
-                return "satisfied", ev_text, s.page, s.confidence
+                confidence = getattr(s, 'confidence', 1.0) or 1.0
+                return "satisfied", ev_text, getattr(s, 'page', None), confidence
 
         sim = semantic_similarity(req_clean, raw_skill)
         if sim > best_sim:
             best_sim = sim
             best_passage = ev_text
-            best_page = s.page
+            best_page = getattr(s, 'page', None)
 
     # 2. Search Experience Descriptions & Roles
     for exp in candidate.experiences:
-        exp_text = f"{exp.role} at {exp.company or ''}: {exp.description or ''}".strip()
+        if not exp or not exp.role:
+            continue
+            
+        role = exp.role or ""
+        company = exp.company or ""
+        desc = exp.description or ""
+        exp_text = f"{role} at {company}: {desc}".strip()
+        
         if not exp_text:
             continue
 
@@ -109,7 +121,7 @@ def retrieve_candidate_evidence(
 
         for term in search_terms:
             if word_boundary_match(term, exp_text):
-                total_matching_duration += exp.duration_months
+                total_matching_duration += (exp.duration_months or 0)
                 if min_duration_months > 0 and total_matching_duration < min_duration_months:
                     # Duration requirement not fully met
                     return "partially_supported", f"{exp_text} (Duration: {total_matching_duration} mos < required {min_duration_months} mos)", None, 0.70
@@ -122,7 +134,16 @@ def retrieve_candidate_evidence(
 
     # 3. Search Projects
     for proj in candidate.projects:
-        proj_text = f"{proj.title}: {proj.description or ''} {' '.join(proj.technologies)}".strip()
+        # Handle both CandidateProject objects and dict/string representations
+        if isinstance(proj, str):
+            proj_text = proj
+        elif hasattr(proj, 'title'):
+            proj_text = f"{proj.title}: {getattr(proj, 'description', '') or ''} {' '.join(getattr(proj, 'technologies', []) or [])}".strip()
+        elif isinstance(proj, dict):
+            proj_text = f"{proj.get('title', 'Project')}: {proj.get('description', '') or ''} {' '.join(proj.get('technologies', []) or [])}".strip()
+        else:
+            proj_text = str(proj)
+        
         if not proj_text:
             continue
 

@@ -225,9 +225,12 @@ def check_mandatory_requirements(
             if s and len(s) < 40 and not any(w in s.lower() for w in ["experience", "years", "building", "proficient"]):
                 must_have_set.add(s)
 
+    # Allow EXACT, EQUIVALENT, TRANSFERABLE, or RELATED matches for must-have skills
+    # Only REJECT completely missing skills
     for req_skill in must_have_set:
         match_detail = classify_skill_match(req_skill, candidate.skills, cfg)
-        if match_detail.match_type not in ["exact", "equivalent"]:
+        # Allow: exact, equivalent, transferable, related. Reject only: missing, unrelated
+        if match_detail.match_type in ["missing", "unrelated"]:
             failed.append(FailedRequirement(
                 type="must_have_skill",
                 required=req_skill,
