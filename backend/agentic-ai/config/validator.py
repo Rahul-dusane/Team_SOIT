@@ -26,6 +26,9 @@ class ConfigValidator:
         errors = []
         
         # Check required variables
+        if not os.getenv("ENVIRONMENT"):
+            os.environ["ENVIRONMENT"] = "development"
+
         for var, allowed_values in ConfigValidator.REQUIRED_VARS.items():
             value = os.getenv(var)
             if not value:

@@ -1,12 +1,99 @@
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-@layer base { body { @apply bg-canvas text-ink antialiased; } * { @apply border-line; } } 
+@layer base {
+  body {
+    @apply bg-canvas text-ink antialiased;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+  ::selection {
+    background-color: rgba(0, 113, 227, 0.2);
+    color: #0071e3;
+  }
+  * {
+    @apply border-line/60;
+  }
+}
+
 @layer components {
-  .panel { @apply rounded-2xl border bg-white shadow-panel; }
-  .eyebrow { @apply text-[10px] font-bold uppercase tracking-[.16em] text-muted; }
-  .btn-primary { @apply inline-flex items-center justify-center gap-2 rounded-lg bg-ink px-4 py-2.5 text-sm font-bold text-white transition hover:bg-teal; }
-  .btn-soft { @apply inline-flex items-center justify-center gap-2 rounded-lg border bg-white px-4 py-2.5 text-sm font-bold text-ink transition hover:border-teal hover:text-teal; }
+  /* Apple & Napkin AI Glass & Panel Styling */
+  .panel {
+    @apply rounded-3xl border border-slate-200/80 bg-white/90 p-6 backdrop-blur-xl shadow-apple-card transition-all duration-300 hover:shadow-panel;
+  }
+  .glass-panel {
+    @apply rounded-3xl border border-white/60 bg-white/80 p-6 backdrop-blur-2xl shadow-glass transition-all duration-300;
+  }
+  .glass-nav {
+    @apply border-b border-white/20 bg-white/70 backdrop-blur-md;
+  }
+  
+  /* Typography & Badges */
+  .eyebrow {
+    @apply text-[11px] font-bold uppercase tracking-[0.14em] text-slate-400;
+  }
+  .gradient-text {
+    @apply bg-gradient-to-r from-slate-900 via-slate-700 to-apple-blue bg-clip-text text-transparent;
+  }
+  .gradient-purple {
+    @apply bg-gradient-to-r from-napkin-purple via-napkin-indigo to-apple-blue bg-clip-text text-transparent;
+  }
+  
+  /* Buttons */
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-2xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:bg-apple-blue hover:shadow-glow active:scale-[0.98];
+  }
+  .btn-soft {
+    @apply inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200/90 bg-white/90 px-5 py-3 text-sm font-semibold text-slate-700 backdrop-blur-sm transition-all duration-200 hover:border-slate-300 hover:bg-slate-50 hover:text-slate-900 active:scale-[0.98];
+  }
+  .btn-accent {
+    @apply inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-napkin-purple to-napkin-indigo px-5 py-3 text-sm font-semibold text-white shadow-glow-purple transition-all duration-200 hover:opacity-95 active:scale-[0.98];
+  }
+
+  /* Micro Cards & Pills */
+  .pill-badge {
+    @apply inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold backdrop-blur-md transition-all;
+  }
+  
+  /* Mesh Background */
+  .mesh-bg {
+    background-image: 
+      radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.05) 0px, transparent 50%),
+      radial-gradient(at 100% 0%, rgba(0, 113, 227, 0.04) 0px, transparent 50%),
+      radial-gradient(at 50% 100%, rgba(13, 148, 136, 0.03) 0px, transparent 50%);
+  }
+
+  /* Fade in animation */
+  .animate-fade-in {
+    animation: fadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px) scale(0.99);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Custom Smooth Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.3);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(100, 116, 139, 0.5);
 }

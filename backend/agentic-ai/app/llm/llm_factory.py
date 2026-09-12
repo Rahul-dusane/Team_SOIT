@@ -23,11 +23,17 @@ class MockStructuredLLM(Runnable):
         
         if schema_name == "CandidateProfile":
             candidate_id = "C01"
-            if isinstance(input_dict, dict) and "candidate_id" in input_dict:
-                candidate_id = input_dict["candidate_id"]
+            cand_name = "Alex Johnson"
+            if isinstance(input_dict, dict):
+                if "candidate_id" in input_dict and input_dict["candidate_id"]:
+                    candidate_id = input_dict["candidate_id"]
+                if "resume_text" in input_dict and isinstance(input_dict["resume_text"], str):
+                    lines = [l.strip() for l in input_dict["resume_text"].splitlines() if l.strip()]
+                    if lines and len(lines[0]) < 50 and not any(k in lines[0].lower() for k in ["resume", "cv", "curriculum"]):
+                        cand_name = lines[0]
             return self.schema(
                 candidate_id=candidate_id,
-                name="Alex Johnson",
+                name=cand_name,
                 email="alex.johnson@example.com",
                 summary="Full-stack backend developer with 4 years experience building scalable APIs.",
                 skills=[
@@ -198,7 +204,7 @@ def is_strict_prod_mode() -> bool:
 def get_llm_metadata() -> Dict[str, Any]:
     """Returns audit metadata (provider, model, prompt_version, is_fallback_used) without exposing keys."""
     provider = os.getenv("LLM_PROVIDER", "openai").lower()
-    model = os.getenv("GEMINI_MODEL", "gemini-2.0-flash") if provider == "gemini" else os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+    model = os.getenv("GEMINI_MODEL", "gemini-1.5-flash") if provider == "gemini" else os.getenv("OPENAI_MODEL", "gpt-4o-mini")
     is_fallback = False
     
     openai_key = os.getenv("OPENAI_API_KEY")
@@ -252,7 +258,9 @@ def get_llm(temperature: float = 0.0, force_mock: bool = False):
             return MockLLM()
         try:
             from langchain_google_genai import ChatGoogleGenerativeAI
-            model = os.getenv("GEMINI_MODEL", "gemini-2.0-flash")
+            model = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
+            if model in ("gemini-2.0-flash", "models/gemini-2.0-flash"):
+                model = "gemini-1.5-flash"
             return ChatGoogleGenerativeAI(model=model, temperature=temperature, google_api_key=gemini_key)
         except Exception as e:
             if is_strict_prod_mode():
