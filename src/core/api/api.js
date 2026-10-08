@@ -2,12 +2,24 @@ import axios from 'axios'
 
 export { formatCandidateForUI, formatJobForUI, uploadOutcome, mergeRankings } from './viewData'
 
+import { supabase } from '../auth/supabaseClient'
+
 export const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1',
   timeout: 30000,
 })
 
-api.interceptors.request.use((config) => {
+api.interceptors.request.use(async (config) => {
+  try {
+    const { data } = await supabase.auth.getSession()
+    const token = data?.session?.access_token
+    if (token) {
+      config.headers['Authorization'] = `Bearer ${token}`
+    }
+  } catch (err) {
+    console.debug('No active Supabase session for API request')
+  }
+
   const apiKey = import.meta.env.VITE_API_KEY
   if (apiKey) {
     config.headers['X-API-Key'] = apiKey
@@ -79,3 +91,8 @@ export const getRanking = (jobId) => {
 export const getMatchDetails = (id) => api.get(`/matches/${id}`).then(res => res.data)
 
 export const runMatch = (candidateId, jobId) => api.post('/matches/run', { candidate_id: candidateId, job_id: jobId }).then(res => res.data)
+
+export const getAuthStatus = () => api.get('/auth/status').then(res => res.data)
+
+export const getCurrentUserProfile = () => api.get('/auth/me').then(res => res.data)
+

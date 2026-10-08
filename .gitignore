@@ -1,20 +1,19 @@
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> rahul
+# Python
 __pycache__/
 *.py[cod]
 *$py.class
+*.pytest_cache/
 .pytest_cache/
-.env
-*.log
-<<<<<<< HEAD
-=======
-node_modules
->>>>>>> ce7808e163f0ed9ef3ea4d0312cef982ba957df5
-=======
 *.db
+*.log
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+backend/agentic-ai/.env
+
+# Node & Build artifacts
 node_modules/
 dist/
 .vite/
->>>>>>> rahul

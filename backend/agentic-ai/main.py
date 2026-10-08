@@ -56,6 +56,10 @@ from fastapi import Request, Security
 import time
 import logging
 
+from auth.router import router as auth_router
+from auth.dependencies import get_current_user, require_role
+from auth.models import UserContext, UserRole
+
 logger = logging.getLogger("hirelens.monitoring")
 
 load_dotenv()
@@ -81,6 +85,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.include_router(auth_router)
 
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
@@ -213,12 +219,12 @@ def health_check(db: Session = Depends(get_db)):
 async def upload_resumes(
     files: List[UploadFile] = File(...),
     db: Session = Depends(get_db),
-    auth: bool = Depends(verify_api_key)
+    current_user: UserContext = Depends(get_current_user)
 ):
     """
     Multipart Resume File Upload.
     Validates, parses (PDF/DOCX/TXT), chunks, embeds 384-dim vectors, extracts structured candidate profiles, and persists records into DB.
-    Requires authentication when API_KEY is set.
+    Requires authentication via Supabase JWT or API key.
     """
     if not files:
         raise HTTPException(status_code=400, detail="No files uploaded.")
@@ -262,7 +268,7 @@ def get_candidate_by_id(candidate_id: str, db: Session = Depends(get_db)):
 
 
 @app.delete("/api/v1/candidates/{candidate_id}")
-def delete_candidate_by_id(candidate_id: str, db: Session = Depends(get_db), auth: bool = Depends(verify_api_key)):
+def delete_candidate_by_id(candidate_id: str, db: Session = Depends(get_db), current_user: UserContext = Depends(get_current_user)):
     cand_repo = CandidateRepository(db)
     success = cand_repo.delete_candidate(candidate_id)
     if not success:
@@ -271,7 +277,7 @@ def delete_candidate_by_id(candidate_id: str, db: Session = Depends(get_db), aut
 
 
 @app.post("/api/v1/jobs")
-def create_or_update_job(job: JobProfile, db: Session = Depends(get_db), auth: bool = Depends(verify_api_key)):
+def create_or_update_job(job: JobProfile, db: Session = Depends(get_db), current_user: UserContext = Depends(get_current_user)):
     job_repo = JobRepository(db)
     job_repo.save_job(job)
     return {"status": "success", "job_id": job.job_id, "title": job.title}

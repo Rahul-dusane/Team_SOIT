@@ -1,5 +1,6 @@
 import { Menu, Search, Command } from 'lucide-react'
 import { Link } from 'react-router-dom'
+import UserMenu from './UserMenu'
 
 export default function Topbar({ onMenu, onSpotlight }) {
   return (
@@ -40,11 +41,7 @@ export default function Topbar({ onMenu, onSpotlight }) {
 
         <div className="h-8 w-px bg-slate-200/70 hidden sm:block" />
 
-        <div className="flex items-center gap-2">
-          <span className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-tr from-slate-900 to-napkin-purple text-xs font-bold text-white shadow-sm">
-            AI
-          </span>
-        </div>
+        <UserMenu />
       </div>
     </header>
   )

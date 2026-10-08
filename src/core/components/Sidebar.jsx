@@ -1,5 +1,6 @@
-import { NavLink } from 'react-router-dom'
-import { BarChart3, BriefcaseBusiness, ChevronLeft, FileText, GitCompare, LayoutDashboard, Plus, Sparkles } from 'lucide-react'
+import { NavLink, useNavigate } from 'react-router-dom'
+import { BarChart3, BriefcaseBusiness, ChevronLeft, FileText, GitCompare, LayoutDashboard, Plus, Sparkles, LogOut } from 'lucide-react'
+import { useAuth } from '../auth/AuthContext'
 
 const mainLinks = [
   { to: '/', label: 'Overview', icon: LayoutDashboard },
@@ -10,6 +11,19 @@ const mainLinks = [
 ]
 
 export default function Sidebar({ open, onClose }) {
+  const { user, signOut } = useAuth()
+  const navigate = useNavigate()
+
+  const handleSignOut = async () => {
+    try {
+      await signOut()
+      onClose?.()
+      navigate('/login', { replace: true })
+    } catch (e) {
+      console.error(e)
+    }
+  }
+
   return (
     <aside
       className={`fixed inset-y-0 left-0 z-40 flex w-72 flex-col border-r border-slate-200/70 bg-white/80 p-6 backdrop-blur-2xl transition-all duration-300 lg:static lg:translate-x-0 ${
@@ -88,8 +102,33 @@ export default function Sidebar({ open, onClose }) {
         </div>
       </div>
 
+      {/* User Quick Info & Sign Out */}
+      {user && (
+        <div className="mb-4 mt-auto rounded-2xl border border-slate-200/80 bg-white/70 p-3 shadow-2xs backdrop-blur-sm">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-slate-900 text-xs font-bold text-white shadow-xs">
+                {user.fullName?.slice(0, 2).toUpperCase() || 'HL'}
+              </span>
+              <div className="min-w-0">
+                <p className="truncate text-xs font-bold text-slate-800">{user.fullName}</p>
+                <p className="truncate text-[10px] text-slate-400 capitalize">{user.role}</p>
+              </div>
+            </div>
+            <button
+              onClick={handleSignOut}
+              aria-label="Sign Out"
+              title="Sign Out"
+              className="rounded-xl p-1.5 text-slate-400 transition-colors hover:bg-rose-50 hover:text-rose-600"
+            >
+              <LogOut size={15} />
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Footer System Status Card */}
-      <div className="mt-auto rounded-2xl border border-slate-200/70 bg-gradient-to-b from-slate-50/80 to-slate-100/50 p-3.5 backdrop-blur-md">
+      <div className={`${user ? '' : 'mt-auto'} rounded-2xl border border-slate-200/70 bg-gradient-to-b from-slate-50/80 to-slate-100/50 p-3.5 backdrop-blur-md`}>
         <div className="flex items-center gap-2.5 mb-1.5">
           <span className="relative flex h-2.5 w-2.5">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
